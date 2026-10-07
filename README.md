@@ -5,7 +5,7 @@ Marketplace interno de Conexa para Claude Code.
 ## Instalar
 
 ```bash
-claude plugin marketplace add <org>/conexa-ai-toolkit
+claude plugin marketplace add conexa-projects/conexa-ai-toolkit
 claude plugin install conexa-workspace@conexa
 ```
 
