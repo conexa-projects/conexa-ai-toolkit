@@ -1,0 +1,5 @@
+# Manifest de repos de trabajo del workspace. Lo lee bootstrap/bootstrap.sh.
+# Formato (separado por TAB):  carpeta <TAB> url-git <TAB> rama (opcional; vacía = la default del remote)
+# La carpeta queda en la raíz del workspace y bootstrap.sh la agrega al bloque de repos del .gitignore.
+# Para sumar uno: bash bootstrap/bootstrap.sh --add <url> [--dir carpeta] [--branch rama]
+{{REPOS_TSV}}

@@ -1,0 +1,23 @@
+{
+  "skill_name": "audit-workspace",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Auditá el workspace en ~/code/pagos-ws y decime si está completo",
+      "expected_output": "Corre audit.py, hace la revisión de juicio (router, 2 comandos por experto verificados, muestreo de notas), reporte con puntaje del script, plan de acción ≤7 filas ruteado a comandos/skills, sin modificar nada.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Este repo de contexto lo armamos a mano hace meses, ¿qué le falta para estar al estándar?",
+      "expected_output": "Reconoce equivalentes no estándar (manifest distinto, CLAUDE.md sin AGENTS.md, agentes en plugins) sin marcarlos como faltantes, y agrega qué partes del estándar conviene adoptar y cuáles no.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Revisá el workspace y arreglá lo que encuentres",
+      "expected_output": "Audita primero, muestra el reporte y pide aprobación antes de cada corrección; credenciales: indica rotarlas; al final re-audita y muestra antes/después del puntaje.",
+      "files": []
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+---
+name: capturar
+description: "Vuelca a la memoria versionada del workspace lo aprendido en la sesión: decide si cada hallazgo es una nota de knowledge/, una entrada en knowledge/decisiones.md, un ajuste a un agente, o nada; lo escribe con la plantilla y lo suma al índice. Usar al cerrar una tarea, cuando se diga 'capturá esto', 'guardá lo que aprendimos', 'dejalo en knowledge', 'registrá la decisión', o con /capturar."
+---
+
+# Capturar lo aprendido
+
+La memoria compartida es lo versionado en esta raíz. Esta skill convierte lo que salió en la sesión
+en algo que el próximo (persona o agente) encuentre.
+
+## Pasos
+
+1. **Juntá candidatos** de la sesión: bugs que costó encontrar, trampas de entorno, comportamientos
+   que contradicen el código, decisiones tomadas o descartadas, reglas que un agente no conocía.
+2. **Filtrá con el test:** ¿se deduce leyendo el código o corriendo un comando? Si sí, descartalo.
+   ¿Ya está en `knowledge/`? Entonces se actualiza esa nota, no se crea otra.
+3. **Clasificá cada uno:**
+
+| Qué es | Dónde va |
+|---|---|
+| Lección durable | `knowledge/<área>/<nombre>.md` desde `knowledge/_template.md`, más la fila en `knowledge/README.md` |
+| Decisión o descarte, con su porqué | Entrada `D-NNN` nueva al final de `knowledge/decisiones.md`. Si reemplaza otra, marcá la vieja |
+| Un paso que un agente tendría que hacer siempre | Ajuste al prompt del agente en `.claude/agents/` (sigue liviano) |
+| Una regla dura nueva | Propuesta de cambio a `AGENTS.md` — es decisión de equipo, va por PR |
+| Un análisis o borrador | `drafts/`, no es conocimiento |
+
+4. **Mostrá la propuesta** (título, destino y texto) antes de escribir. Escribí lo aprobado.
+   - La `description` de la nota se escribe con las palabras de quien tiene el problema.
+   - Citá la fuente: `repo/archivo:línea`, ticket o conversación. Lo observado y no verificado en
+     código, marcalo como tal.
+5. **Validá:** `git add` por nombre de lo escrito y `node scripts/validate.mjs`.
+6. **Commit** según `CONTRIBUTING.md`: `knowledge/` va directo a la rama base; agentes y
+   `AGENTS.md`, por PR. Siempre con aprobación.
+
+Si no hay nada que pase el test, decilo en una línea y no escribas nada.

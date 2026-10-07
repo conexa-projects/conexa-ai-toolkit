@@ -1,0 +1,80 @@
+# {{NAME}}
+
+{{DESCRIPTION}}
+
+Este repositorio es la **raíz del workspace**. No contiene código de producto: contiene el contexto
+que une a los repos de trabajo — reglas, conocimiento, agentes y scripts. Cada repo de trabajo es un
+repositorio aparte, vive como carpeta dentro de esta raíz, está ignorado por git y lo baja
+`bootstrap/bootstrap.sh`.
+
+> **Abrí la sesión siempre en esta raíz.** Las rutas de este archivo son relativas a ella.
+
+## Repositorios
+
+<!-- BEGIN repos — una fila por repo de bootstrap/repos.tsv; la mantiene /agregar-repo -->
+| Carpeta | Qué es | Stack | Experto |
+|---|---|---|---|
+{{REPOS_TABLE}}
+<!-- END repos -->
+
+Los repos no forman un monorepo: cada uno tiene sus dependencias y sus comandos. **Entrá a la carpeta
+del repo antes de correr cualquier comando.** Si un repo tiene su propio `AGENTS.md` o `CLAUDE.md`,
+sus reglas mandan dentro de ese repo.
+
+## Cómo orientarte rápido — en este orden
+
+1. **`.context/INDEX.md`**: el mapa generado de todos los repos (stack, ramas, relaciones). Es barato:
+   leelo antes de grepear.
+2. **`.context/map/<repo>.md`**: el detalle de un repo (estructura, comandos, entrypoints, hotspots).
+3. **`knowledge/README.md`**: el índice de lo que no se deduce del código. Abrí solo la nota que aplica.
+4. Recién ahí, el código.
+
+Si `.context/` no existe o un repo cambió, regeneralo: `node scripts/map.mjs`.
+
+## Idioma
+
+{{LANG_SUMMARY}}
+
+La regla completa está en [`knowledge/procesos/idioma.md`](knowledge/procesos/idioma.md).
+
+## Reglas duras
+
+- **Nada se escribe en un repo de trabajo sin aprobación explícita para esa acción puntual**: commits,
+  pushes, ramas, PRs, merges. Un OK anterior no cubre la acción siguiente. Leer no necesita aprobación.
+- **Nunca `git add -A`, `git add .` ni `git add -u`.** Agregá archivos por nombre.
+- **La rama base de cada repo se resuelve**, no se asume: `git rev-parse --abbrev-ref origin/HEAD`.
+- **Nada de secretos en archivos versionados.** `.env`, claves y tokens quedan fuera de git.
+- **Nada de rutas absolutas de tu máquina** en archivos versionados.
+- **La raíz no versiona código de los repos.** Si un repo aparece en `git status` de la raíz, algo
+  está mal en el `.gitignore`.
+
+## Memoria del proyecto
+
+La memoria compartida es **lo versionado en esta raíz**. El chat y la memoria local del agente no se
+comparten con el equipo.
+
+| Qué descubriste | Dónde va |
+|---|---|
+| Una lección durable que no se deduce del código | `knowledge/<área>/`, sumada al índice |
+| Una decisión y su porqué | Entrada nueva en [`knowledge/decisiones.md`](knowledge/decisiones.md) |
+| Un análisis, una estimación, un borrador | `drafts/` (ignorado: no es conocimiento) |
+
+**Al cerrar una tarea, preguntate: ¿descubrí algo que el código no deja obvio?** Si sí, escribilo en
+el mismo movimiento. El proceso está en [`MAINTENANCE.md`](MAINTENANCE.md).
+
+## Roles de agente
+
+| Para | Rol |
+|---|---|
+| Revisar un diff, una rama o un PR | `code-reviewer` |
+| Revisar seguridad: secretos, auth, inyección, dependencias | `security-reviewer` |
+| Ubicar algo en uno o varios repos | `explorer` |
+| Trabajar sobre un repo puntual | `<repo>-expert` (tabla de arriba) |
+
+Los agentes son de **solo lectura** y no escriben en `knowledge/`: lo que descubren lo vuelca la
+sesión principal.
+
+## Antes de dar una tarea por terminada
+
+Informá: archivos modificados (por repo), comprobaciones que corriste de verdad, lo que quedó sin
+verificar y el conocimiento que convendría versionar.

@@ -1,0 +1,17 @@
+# CLAUDE.md
+
+@AGENTS.md
+
+## Específico de Claude Code
+
+Todo lo de arriba aplica. Esto agrega solo lo que es propio de Claude Code.
+
+- **Subagentes** en `.claude/agents/`. Delegá con la herramienta Agent según la tabla de roles:
+  el trabajo sobre un repo va a su `<repo>-expert`; una revisión, al `code-reviewer`.
+  Pasale al subagente la consigna afilada: repo, rama y síntoma.
+- **Skills del workspace:** `/agregar-repo <url>` suma un repo (manifest, clon, mapa, experto);
+  `/capturar` vuelca lo aprendido en la sesión a `knowledge/`.
+- **Hook de inicio:** `scripts/session-start.sh` refresca el mapa de `.context/` si algún repo cambió
+  y avisa qué falta clonar.
+- **Permisos** en `.claude/settings.json`. Lo personal va en `.claude/settings.local.json` (ignorado).
+- **La auto-memoria de Claude** vive en tu máquina y no se comparte: no reemplaza a `knowledge/`.

@@ -1,0 +1,8 @@
+{
+  "name": "conexa-workspace",
+  "description": "Crear y auditar workspaces multi-repo para agentes",
+  "author": {
+    "name": "Conexa Tech Ops",
+    "email": "ezequiel@conexa.ai"
+  }
+}

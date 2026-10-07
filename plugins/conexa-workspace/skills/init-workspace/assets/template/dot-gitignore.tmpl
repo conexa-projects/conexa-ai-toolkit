@@ -1,0 +1,38 @@
+# ── Secretos: nunca ─────────────────────────────────────────────
+# scripts/validate.mjs falla en CI si alguno llega a quedar versionado.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+client_secret*.json
+secrets.json
+
+# ── Generado: se reconstruye solo ───────────────────────────────
+# El mapa de contexto lo escribe scripts/map.mjs a partir de los repos.
+/.context/
+
+# ── Borradores: no son conocimiento ─────────────────────────────
+/drafts/*
+!/drafts/.gitkeep
+
+# ── Estado local de los agentes ─────────────────────────────────
+.claude/settings.local.json
+.claude/agent-memory/
+
+# ── Sistema, editores, dependencias ─────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/
+node_modules/
+*.log
+
+# ── Repos de trabajo ────────────────────────────────────────────
+# Sin barra final a propósito: así también se ignoran cuando son symlinks (--link).
+# >>> repos (bootstrap/bootstrap.sh mantiene este bloque; no editar a mano) >>>
+{{REPOS_GITIGNORE}}
+# <<< repos <<<

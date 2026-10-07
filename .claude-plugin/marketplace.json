@@ -1,0 +1,15 @@
+{
+  "name": "conexa",
+  "description": "Skills, MCPs y plugins de Conexa para Claude Code",
+  "owner": {
+    "name": "Conexa Tech Ops",
+    "email": "ezequiel@conexa.ai"
+  },
+  "plugins": [
+    {
+      "name": "conexa-workspace",
+      "source": "./plugins/conexa-workspace",
+      "description": "Crear y auditar workspaces multi-repo para agentes"
+    }
+  ]
+}

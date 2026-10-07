@@ -1,0 +1,32 @@
+---
+name: decisiones
+description: Por qué algo es como es — el log de decisiones del workspace, con fecha y estado
+---
+
+# Decisiones
+
+Una entrada por decisión, al final del archivo. **Nunca se reescribe una entrada:** si la decisión
+cambia, se agrega una nueva y la vieja se marca `Reemplazada por D-NNN`.
+
+Estados: `Propuesta` · `Aceptada` · `Reemplazada` · `Descartada`.
+
+Formato:
+
+```
+### D-NNN — Título corto en afirmativo
+- **Fecha:** AAAA-MM-DD · **Estado:** Aceptada
+- **Decisión:** qué se decidió, en una o dos líneas.
+- **Por qué:** el motivo, y lo que se descartó.
+- **Consecuencias:** qué cambia, qué queda pendiente.
+```
+
+---
+
+### D-001 — El workspace es una raíz de contexto, no un monorepo
+- **Fecha:** {{DATE}} · **Estado:** Aceptada
+- **Decisión:** la raíz versiona reglas, conocimiento, agentes y scripts. Los repos de trabajo son
+  repositorios aparte, clonados como carpetas ignoradas por `bootstrap/bootstrap.sh`.
+- **Por qué:** una sola sesión de agente ve todos los repos a la vez, el contexto compartido no se
+  dispersa entre ellos, y cada repo conserva su historia, sus permisos y su CI.
+- **Consecuencias:** los cambios de código se commitean en cada repo, no en la raíz. El manifest
+  `bootstrap/repos.tsv` es la lista autoritativa de repos.

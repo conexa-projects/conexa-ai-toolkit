@@ -1,0 +1,47 @@
+---
+name: agregar-repo
+description: "Suma un repo de trabajo a este workspace: lo registra en bootstrap/repos.tsv, lo clona (o lo enlaza si ya está clonado en otro lado), regenera el mapa de .context/, crea su agente <repo>-expert desde la plantilla y agrega su fila a la tabla de AGENTS.md. Usar cuando se pida agregar, sumar, incorporar o conectar un repo al workspace, o con /agregar-repo <url>. No toca el código del repo."
+---
+
+# Agregar un repo al workspace
+
+## Reglas duras
+
+- No escribas nada dentro del repo nuevo: solo se lee.
+- Clonar necesita red y credenciales: mostrá el `--dry-run` y esperá el OK antes de clonar.
+- Todo lo que pongas en el experto sale de leer el repo. Lo no verificado va `[a confirmar]`.
+
+## Pasos
+
+1. **Inputs.** URL git (o ruta local: leé su `origin` con `git -C <ruta> remote get-url origin`).
+   Opcionales: nombre de carpeta y rama. Si ya está clonado en otra carpeta, anotala para `--link`.
+2. **Registrar y clonar.**
+   ```bash
+   bash bootstrap/bootstrap.sh --add <url> [--dir <carpeta>] [--branch <rama>] --dry-run
+   bash bootstrap/bootstrap.sh --add <url> [--dir <carpeta>] [--branch <rama>] [--link <dir>]
+   ```
+   El bootstrap valida duplicados, clona o enlaza, y actualiza el bloque de repos del `.gitignore`.
+3. **Mapa.** `node scripts/map.mjs --repo <carpeta>` y leé `.context/map/<carpeta>.md`.
+4. **Leer el repo**, en este orden y parando cuando alcance: su `AGENTS.md`/`CLAUDE.md` (sus reglas
+   mandan adentro del repo), README, manifests y sus scripts, CI, dos o tres entrypoints del mapa,
+   `.env.example` (solo nombres de variables).
+5. **Experto.** Copiá `knowledge/templates/repo-expert.md` a `.claude/agents/<carpeta>-expert.md` y
+   completalo. La `description` lleva las palabras que usaría alguien con un problema en ese repo; si
+   se puede confundir con otro experto, decí qué no cubre. Menos de 80 líneas. Cada comando tiene que
+   existir en un manifest o en el CI.
+6. **Tabla.** Agregá la fila entre `<!-- BEGIN repos -->` y `<!-- END repos -->` de `AGENTS.md`:
+   `` | `<carpeta>/` | <qué es> | <stack> | `<carpeta>-expert` | ``. Si la tabla tenía la fila de
+   "sin repos todavía", reemplazala.
+7. **Validar.** `git add` por nombre de los archivos tocados (manifest, `.gitignore`, experto,
+   `AGENTS.md`) y `node scripts/validate.mjs`. Verificá con `git status` que la carpeta del repo **no**
+   aparezca.
+8. **Commit** solo con aprobación: `git commit -m "<mensaje según knowledge/procesos/idioma.md>"`.
+
+## Salida
+
+```
+Repo <carpeta> agregado — clonado | enlazado | falló (<motivo>)
+Experto: .claude/agents/<carpeta>-expert.md
+[a confirmar]: <lista>
+Validador: OK | <problemas>
+```

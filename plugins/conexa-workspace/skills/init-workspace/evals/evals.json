@@ -1,0 +1,23 @@
+{
+  "skill_name": "init-workspace",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Armame un workspace en ~/code/pagos-ws para el proyecto de pagos, con estos repos: git@github.com:acme/Pagos.Backend.git y git@github.com:acme/Pagos.Frontend.git",
+      "expected_output": "Scaffold completo, manifest con 2 repos, bootstrap corrido con dry-run previo y confirmación, mapa generado, un experto por repo con comandos verificados, fila en AGENTS.md, validador OK, sin commit sin aprobación.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Quiero una carpeta raíz para agentes en ./ws, todavía no tengo los repos",
+      "expected_output": "Scaffold sin repos, tabla de AGENTS.md con la fila de 'sin repos todavía', sin expertos por repo, indicación de /agregar-repo.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Ya tengo ~/work/cliente con un CLAUDE.md y los repos clonados adentro; sumale la estructura de workspace sin romper nada",
+      "expected_output": "Modo adaptar: inventario, carpetas con .git registradas en el manifest con su origin, CLAUDE.md existente no pisado sino propuesta de mover contenido a AGENTS.md con diff, .gitignore fusionado con el bloque de repos.",
+      "files": []
+    }
+  ]
+}

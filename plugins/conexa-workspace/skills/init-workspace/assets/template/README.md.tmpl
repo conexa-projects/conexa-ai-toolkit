@@ -1,0 +1,74 @@
+# {{NAME}}
+
+{{DESCRIPTION}}
+
+Esta es la **raíz del workspace**: acá no vive el código, vive el contexto que lo une. Los repos de
+trabajo se clonan como carpetas dentro de esta raíz y quedan ignorados por git.
+
+> **Abrí tu agente (Claude Code, Codex…) siempre en esta raíz.** `AGENTS.md` y `CLAUDE.md` le dan el
+> contexto de todos los repos a la vez, y las rutas son relativas a este directorio.
+
+## Setup
+
+```bash
+bash bootstrap/bootstrap.sh
+```
+
+Clona los repos de `bootstrap/repos.tsv` por SSH. Opciones:
+
+| Opción | Qué hace |
+|---|---|
+| `--https` | Clona por HTTPS en vez de SSH |
+| `--link <dir>` | Reusa clones que ya tenés en otra carpeta (los detecta por `origin` y los enlaza). Repetible |
+| `--update` | Hace `fetch` + `pull --ff-only` en los repos que estén limpios. Nunca descarta cambios |
+| `--add <url> [--dir X] [--branch Y]` | Suma un repo al manifest y lo clona |
+| `--dry-run` | Muestra qué haría, sin tocar nada |
+
+Es idempotente: re-correrlo agrega solo lo que falta y nunca toca tu código.
+
+Después, en cada repo, su propio setup (`.env.example`, dependencias): está en su README.
+
+**Requisitos:** `git`, `bash` (en Windows, Git Bash o WSL) y Node ≥ 18 para los scripts.
+
+## Qué hay
+
+```
+AGENTS.md        Reglas y contexto para cualquier agente. La fuente de verdad
+CLAUDE.md        Importa AGENTS.md y suma lo específico de Claude Code
+bootstrap/       repos.tsv (el manifest) y bootstrap.sh (el que clona)
+scripts/         map.mjs (mapa), validate.mjs (CI), session-start.sh (hook), graphify-setup.sh (grafo)
+knowledge/       Lo que aprendimos y no se deduce del código, y el log de decisiones
+.claude/         Subagentes, skills y settings de Claude Code
+drafts/          Borradores locales (ignorado)
+.context/        Mapa generado de los repos (ignorado)
+```
+
+## El mapa de contexto
+
+```bash
+node scripts/map.mjs            # regenera solo los repos que cambiaron
+node scripts/map.mjs --force    # todo
+```
+
+Escribe `.context/INDEX.md` y un `.context/map/<repo>.md` por repo. Los agentes lo leen antes de
+grepear: es mucho más barato que explorar a ciegas. Se refresca solo al abrir una sesión de Claude Code.
+
+## Grafo de código (opcional)
+
+```bash
+bash scripts/graphify-setup.sh --dry-run    # qué va a hacer
+bash scripts/graphify-setup.sh              # instala graphify y construye el grafo de todos los repos
+```
+
+Instala el CLI (con `uv`, `pipx` o `pip`), registra la skill `/graphify` en tu usuario y construye un
+grafo de símbolos y relaciones de todos los repos: local, sin API key ni costo de LLM. Se refresca solo
+al abrir una sesión si algún repo cambió. Opciones: `--hooks` (empuja a Claude al grafo antes de
+grepear), `--mcp` (el grafo como servidor MCP), `--refresh`, `--uninstall`. Todo en `--help`.
+
+No uses `/graphify .` sobre esta raíz: los repos están en el `.gitignore` y quedarían afuera.
+
+## CI
+
+Cada PR corre `node scripts/validate.mjs`: falla si hay una credencial versionada, un repo de trabajo
+versionado, un link roto, una ruta de máquina personal, un agente o skill con frontmatter inválido, o
+una nota de `knowledge/` fuera del índice.
