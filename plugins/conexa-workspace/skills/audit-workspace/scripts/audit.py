@@ -40,6 +40,18 @@ GENERIC_AGENTS = ["code-reviewer", "security-reviewer", "explorer"]
 WS_SKILLS = ["agregar-repo", "capturar"]
 SECRET_PATH = [r"\.pem$", r"\.key$", r"\.p12$", r"\.pfx$", r"(^|/)client_secret[^/]*\.json$",
                r"(^|/)\.env(\.(?!example$)[^/]+)?$", r"(^|/)secrets\.json$", r"(^|/)id_(rsa|ed25519|ecdsa)$"]
+AUDIT_OUTPUT = [r"(^|/)security-audit(-skill)?/", r"(^|/)coverage-ledger\.json$", r"(^|/)NEEDS-VALIDATION\.md$", r"(^|/)FINDINGS-DETAIL\.md$"]
+# Reglas mínimas que tiene que tener security-reviewer: (patrón, severidad, título, detalle, recomendación)
+REVIEWER_RULES = [
+    (r"(?i)primeros\s+4\s+caracteres|enmascar|nunca imprimas un secreto", "importante", "`security-reviewer` no enmascara secretos",
+     "Puede copiar una credencial completa a la respuesta, al chat o a un PR.", "Sumar la regla: archivo, línea y primeros 4 caracteres; rotar si es real."),
+    (r"(?i)no ejecutes", "importante", "`security-reviewer` no prohíbe ejecutar código del repo",
+     "Correr tests o scripts de un repo en revisión ejecuta código no confiable con las credenciales del usuario.", "Sumar \"No ejecutes código, tests ni scripts del repo\"."),
+    (r"(?i)frontera", "mejora", "`security-reviewer` no exige frontera y resultado",
+     "Sin esa regla reporta buenas prácticas faltantes como si fueran vulnerabilidades.", "Copiar la sección \"Verificá antes de reportar\" de la plantilla actual."),
+    (r"security-audit", "mejora", "`security-reviewer` no deriva a la skill `security-audit`",
+     "Los pedidos de auditoría completa se resuelven con una revisión acotada sin decir que es parcial.", "Copiar la sección \"Cuándo no alcanza esta revisión\" de la plantilla actual."),
+]
 MACHINE_PATH = re.compile(r"/(?:Users|home)/[A-Za-z0-9._-]+/|[A-Za-z]:\\Users\\[A-Za-z0-9._-]+")
 TEXT_EXT = re.compile(r"\.(md|mjs|js|ts|json|ya?ml|sh|ps1|txt|tsv|toml|py)$|(^|/)\.gitignore$", re.I)
 PLACEHOLDER = re.compile(r"<carpeta>|\[a completar\]|<qué [^>]*>|<dir>|<instalar>|<convención[^>]*>")
@@ -452,6 +464,19 @@ class Audit:
         d = "seguridad"
         secrets = [f for f in self.tracked if any(re.search(p, f, re.I) for p in SECRET_PATH)]
         self.check(d, not secrets, "critico", "Credenciales versionadas", ", ".join(secrets[:6]), "Sacarlas del índice y **rotarlas**: siguen en la historia.")
+        reports = [f for f in self.tracked if not re.search(r"(^|/)skills/security-audit/", f) and any(re.search(p, f) for p in AUDIT_OUTPUT)]
+        self.check(d, not reports, "critico", "Informes de auditoría de seguridad versionados", ", ".join(reports[:6]),
+                   "Traen el camino de explotación de código de clientes. `git rm --cached` y evaluar si hay que reescribir la historia.")
+        rev = self.agent_paths.get("security-reviewer")
+        if rev:
+            text = read(self.p(*rev.split("/")))
+            fm = frontmatter(text) or {}
+            tools = fm.get("tools", "")
+            writes = [t for t in ("Write", "Edit", "NotebookEdit") if re.search(r"\b" + t + r"\b", tools)]
+            self.check(d, not writes, "importante", "`security-reviewer` tiene herramientas de escritura", "Tiene " + ", ".join(writes) + ": un revisor de seguridad tiene que ser de solo lectura.",
+                       "Dejar `tools: Read, Grep, Glob, Bash`.")
+            for pat, sev, title, detail, fix in REVIEWER_RULES:
+                self.check(d, re.search(pat, text) is not None, sev, title, detail, fix)
         paths = []
         for f in self.tracked:
             if TEXT_EXT.search(f) and not f.endswith("validate.mjs"):
@@ -461,6 +486,8 @@ class Audit:
         gi = read(self.p(".gitignore"))
         for pat in (".env", "*.pem", "*.key"):
             self.check(d, re.search(r"^" + re.escape(pat) + r"\s*$", gi, re.M) is not None, "importante", f"El .gitignore no ignora `{pat}`", "", "Agregar el bloque de secretos.")
+        self.check(d, re.search(r"^/?security-audit/?\s*$", gi, re.M) is not None, "mejora", "El .gitignore no ignora `/security-audit/`",
+                   "Si alguien guarda un informe de auditoría dentro del workspace, queda versionable.", "Agregar el bloque de auditorías de seguridad de la plantilla.")
         settings = self.p(".claude", "settings.json")
         if not os.path.exists(settings):
             return

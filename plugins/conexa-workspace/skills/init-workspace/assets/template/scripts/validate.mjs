@@ -83,6 +83,11 @@ const repos = repoDirs()
 // 1. Credenciales versionadas
 for (const f of files) if (SECRET_PATH.some((p) => p.test(f))) fail('credencial versionada', f)
 
+// 1b. Informes de auditoría de seguridad versionados (traen caminos de explotación)
+const AUDIT_OUTPUT = [/(^|\/)security-audit(-skill)?\//, /(^|\/)coverage-ledger\.json$/, /(^|\/)NEEDS-VALIDATION\.md$/, /(^|\/)FINDINGS-DETAIL\.md$/]
+// La skill misma (skills/security-audit/) no es un informe: se excluye
+for (const f of files) if (!/(^|\/)skills\/security-audit\//.test(f) && AUDIT_OUTPUT.some((p) => p.test(f))) fail('informe de seguridad versionado', `${f} — sacarlo del índice con git rm --cached`)
+
 // 2. Repos de trabajo versionados en la raíz, y bloque del .gitignore
 for (const dir of repos) {
   const inside = files.filter((f) => f === dir || f.startsWith(dir + '/'))

@@ -95,7 +95,8 @@ Los repos que no se pudieron clonar quedan en la tabla con `[no clonado]` y sin 
 
 1. Modo adaptar: proponé la fusión de cada archivo que quedó en "existe", con diff, y aplicá lo aprobado.
 2. `git init` si hace falta. Corré `node scripts/validate.mjs` (necesita que los archivos estén en el índice: `git add` por nombre de lo generado, sin commitear todavía) y corregí lo que marque.
-3. Preguntá antes del primer commit. Nunca `git add -A`: agregá por nombre, y verificá con `git status` que ninguna carpeta de repo quedó adentro.
+3. Fijate si la skill `security-audit` aparece entre las skills disponibles de la sesión. Si no, anotá en el reporte que falta instalar el plugin `conexa-guardrails`: sin él, `security-reviewer` recomienda una skill que no existe.
+4. Preguntá antes del primer commit. Nunca `git add -A`: agregá por nombre, y verificá con `git status` que ninguna carpeta de repo quedó adentro.
 
 ## Formato del reporte final
 
@@ -105,6 +106,7 @@ Workspace listo en <destino>
 Creado: <n> archivos · Fusionados: <lista> · Sin tocar: <lista>
 Repos: <carpeta> — clonado | enlazado | falló (<motivo>)
 Expertos: <lista de agentes creados>
+Seguridad: security-reviewer (revisión acotada) · security-audit disponible | falta el plugin conexa-guardrails
 Grafo: construido (<n> nodos por repo) | no instalado
 Validador: OK | <problemas pendientes>
 [a confirmar]: <lo que no se pudo verificar, por repo>

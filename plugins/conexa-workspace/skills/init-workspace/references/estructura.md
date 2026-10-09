@@ -26,7 +26,7 @@ La raíz es la **capa de contexto**. Versiona reglas, conocimiento, agentes y sc
 | `knowledge/procesos/idioma.md` | sí | La regla de idioma completa |
 | `knowledge/templates/repo-expert.md` | sí | Plantilla de agente experto por repo |
 | `.claude/settings.json` | sí | Permisos (lectura libre, escrituras riesgosas denegadas) y hook `SessionStart` |
-| `.claude/agents/` | sí | `code-reviewer`, `security-reviewer`, `explorer` + un `<repo>-expert` por repo |
+| `.claude/agents/` | sí | `code-reviewer`, `security-reviewer`, `explorer` + un `<repo>-expert` por repo. `security-reviewer` hace la revisión acotada y deriva las auditorías completas a la skill `security-audit` (plugin `conexa-guardrails`, no se copia al workspace) |
 | `.claude/skills/agregar-repo/` | sí | Sumar un repo después del setup |
 | `.claude/skills/capturar/` | sí | Volcar lo aprendido en una sesión a `knowledge/` |
 | `.github/` | sí (opcional) | Workflow del validador y PR template |
@@ -38,6 +38,7 @@ La raíz es la **capa de contexto**. Versiona reglas, conocimiento, agentes y sc
 ## Lo que chequea el validador
 
 - Credenciales versionadas (`*.pem`, `*.key`, `.env`, `client_secret*`, etc.).
+- Informes de una auditoría de seguridad versionados (`security-audit/`, `coverage-ledger.json`, `FINDINGS-DETAIL.md`, `NEEDS-VALIDATION.md`).
 - Archivos de un repo de trabajo versionados en la raíz.
 - Cada carpeta del manifest presente en el bloque de repos del `.gitignore`.
 - Links relativos rotos en markdown (ignora los que apuntan a repos o a `.context/`, que no existen en CI).
@@ -54,11 +55,11 @@ El objetivo es sumar lo que falta sin romper lo que funciona.
 2. **Equivalentes: respetá el nombre existente.** Si ya hay una carpeta de conocimiento con otro nombre, no crees una segunda. Proponé usar la existente y ajustá las rutas en `AGENTS.md` y en el validador.
 3. **`CLAUDE.md` existente sin `AGENTS.md`.** Proponé mover el contenido agnóstico a `AGENTS.md` y dejar en `CLAUDE.md` el `@AGENTS.md` más lo específico de Claude. Mostrá el diff completo antes.
 4. **`AGENTS.md` existente.** No lo reemplaces. Proponé agregar solo las secciones faltantes (tabla de repos con marcadores, "Cómo orientarte rápido", "Memoria del proyecto").
-5. **`.gitignore` existente.** Agregá solo los bloques que falten: secretos, `/.context/`, `/drafts/*`, estado local de agentes y el bloque de repos con sus marcadores. El bootstrap necesita los marcadores exactos:
+5. **`.gitignore` existente.** Agregá solo los bloques que falten: secretos, auditorías de seguridad, `/.context/`, `/drafts/*`, estado local de agentes y el bloque de repos con sus marcadores. El bootstrap necesita los marcadores exactos:
    ```
    # >>> repos (bootstrap/bootstrap.sh mantiene este bloque; no editar a mano) >>>
    # <<< repos <<<
    ```
 6. **`.claude/settings.json` existente.** Fusioná por clave: sumá los `allow`/`deny` que falten y el hook `SessionStart` si no hay uno. No borres entradas del usuario.
 7. **Carpetas con `.git` adentro.** Son repos de trabajo: registralas en `bootstrap/repos.tsv` con su `origin` y su nombre de carpeta actual. Si alguna está **trackeada** por el repo raíz (no ignorada), avisá: sacarla del índice (`git rm -r --cached <carpeta>`) es una decisión del usuario.
-8. **Agentes existentes.** No los reescribas. Si hay uno que cumple el rol de un genérico (ej. ya hay un reviewer), no agregues el genérico: mencioná la superposición en el reporte.
+8. **Agentes existentes.** No los reescribas. Si hay uno que cumple el rol de un genérico (ej. ya hay un reviewer), no agregues el genérico: mencioná la superposición en el reporte. Si hay un `security-reviewer` viejo, proponé con diff sumarle las reglas de la plantilla actual (frontera y resultado, secretos enmascarados, derivación a `security-audit`).
