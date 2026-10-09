@@ -10,6 +10,11 @@
       "name": "conexa-workspace",
       "source": "./plugins/conexa-workspace",
       "description": "Crear y auditar workspaces multi-repo para agentes"
+    },
+    {
+      "name": "conexa-guardrails",
+      "source": "./plugins/conexa-guardrails",
+      "description": "Guardrails de seguridad: security-audit de Cloudflare (versión fija y revisada) con reglas de Conexa"
     }
   ]
 }

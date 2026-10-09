@@ -41,8 +41,9 @@ Lo que un script no puede decidir. Leé solo lo necesario para cada punto:
 4. **Decisiones.** ¿Tienen su porqué? ¿Hay decisiones evidentes en el código o en AGENTS.md que no están registradas?
 5. **Cobertura.** Repos con mucha actividad (hotspots) y cero notas; stacks presentes (Terraform, pipelines, base de datos) sin experto que los cubra.
 6. **Onboarding.** ¿Con el README alguien nuevo llega a una sesión útil en 10 minutos?
+7. **Seguridad del tooling.** ¿La skill `security-audit` aparece entre las skills disponibles de la sesión? Si no, el `security-reviewer` deriva a algo que no existe: recomendá instalar el plugin `conexa-guardrails`. Si existe, ¿es la versión aprobada? (`scripts/verify-vendor.sh` del plugin).
 
-Si el workspace no sigue el estándar, sumá un punto 7: **qué partes del estándar conviene adoptar y cuáles no**, según cómo trabaja ese workspace. No todo hueco es un defecto: un workspace de un solo repo no necesita manifest.
+Si el workspace no sigue el estándar, sumá un punto 8: **qué partes del estándar conviene adoptar y cuáles no**, según cómo trabaja ese workspace. No todo hueco es un defecto: un workspace de un solo repo no necesita manifest.
 
 ## Paso 3 — Reporte
 
@@ -85,6 +86,8 @@ Nunca apliques nada sin OK explícito, ítem por ítem o por grupo. Ruteá cada 
 | Mapa o grafo desactualizados | `node scripts/map.mjs` · `bash scripts/graphify-setup.sh --refresh` |
 | Credencial versionada | Sacarla del índice **y rotarla**. Rotar es del usuario: decilo explícitamente |
 | Repo versionado en la raíz | `git rm -r --cached <carpeta>`, con aprobación |
+| `security-reviewer` sin las reglas actuales | Diff contra la plantilla de `init-workspace` y fusión con OK |
+| Informe de seguridad versionado | `git rm --cached`, sumar el bloque al `.gitignore`; si llegó al remoto, tratarlo como filtración |
 | Script distinto a la plantilla | Mostrá el `diff` primero: puede ser una personalización intencional |
 
 Después de corregir, volvé a correr el script y mostrá el antes y el después del puntaje.

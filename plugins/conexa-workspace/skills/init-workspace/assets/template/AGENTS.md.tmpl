@@ -45,6 +45,8 @@ La regla completa está en [`knowledge/procesos/idioma.md`](knowledge/procesos/i
 - **La rama base de cada repo se resuelve**, no se asume: `git rev-parse --abbrev-ref origin/HEAD`.
 - **Nada de secretos en archivos versionados.** `.env`, claves y tokens quedan fuera de git.
 - **Nada de rutas absolutas de tu máquina** en archivos versionados.
+- **Los informes de seguridad son confidenciales.** Quedan fuera de git y no se suben a Drive,
+  Slack ni tickets sin clasificarlos: traen el camino de explotación de código de clientes.
 - **La raíz no versiona código de los repos.** Si un repo aparece en `git status` de la raíz, algo
   está mal en el `.gitignore`.
 
@@ -67,7 +69,8 @@ el mismo movimiento. El proceso está en [`MAINTENANCE.md`](MAINTENANCE.md).
 | Para | Rol |
 |---|---|
 | Revisar un diff, una rama o un PR | `code-reviewer` |
-| Revisar seguridad: secretos, auth, inyección, dependencias | `security-reviewer` |
+| Revisar seguridad de un cambio o un repo: secretos, auth, inyección, CI, LLM, dependencias | `security-reviewer` |
+| Auditoría de seguridad completa, pen-test o informe formal | skill `security-audit` (plugin `conexa-guardrails`) |
 | Ubicar algo en uno o varios repos | `explorer` |
 | Trabajar sobre un repo puntual | `<repo>-expert` (tabla de arriba) |
 

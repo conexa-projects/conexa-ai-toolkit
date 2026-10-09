@@ -62,6 +62,9 @@ Incluye `.claude/agents/` y `plugins/*/agents/`.
 
 ### Seguridad
 - Credenciales versionadas (**crítico**).
+- Informes de auditoría de seguridad versionados: `security-audit/`, `coverage-ledger.json`, `FINDINGS-DETAIL.md`, `NEEDS-VALIDATION.md` (**crítico**: traen caminos de explotación).
+- `.gitignore` con `/security-audit/` (mejora).
+- `security-reviewer`, si existe: sin `Write`/`Edit` en `tools` (importante); enmascara secretos (importante); prohíbe ejecutar código del repo (importante); exige frontera y resultado para reportar (mejora); deriva las auditorías completas a la skill `security-audit` (mejora).
 - Rutas absolutas de máquina personal en archivos versionados.
 - `.gitignore` con `.env`, `*.pem` y `*.key`.
 - `settings.json`: JSON válido (**crítico** si no, porque Claude Code lo ignora entero); sin permisos amplios en `allow` (`Bash`, `Bash(*)`, `git push`, `git -C`, `rm`, `git reset`); `deny` de lectura de `.env` y de `git push --force`.

@@ -10,6 +10,12 @@
 client_secret*.json
 secrets.json
 
+# ── Auditorías de seguridad: confidenciales ─────────────────────
+# security-audit escribe fuera del repo por defecto (~/security-audit-skill/). Si se elige una
+# carpeta acá, tiene que quedar ignorada. scripts/validate.mjs falla si se versiona un informe.
+/security-audit/
+/security-audit-skill/
+
 # ── Generado: se reconstruye solo ───────────────────────────────
 # El mapa de contexto lo escribe scripts/map.mjs a partir de los repos.
 /.context/
