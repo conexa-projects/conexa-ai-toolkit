@@ -1,0 +1,10 @@
+{
+  "name": "conexa-guardrails",
+  "version": "0.1.0",
+  "description": "Guardrails de seguridad de Conexa: skill security-audit de Cloudflare (versión fija y revisada) con reglas propias de Conexa para secretos, confidencialidad, costo e idioma.",
+  "author": {
+    "name": "Conexa — Tech Ops / IT",
+    "email": "ezequiel@conexa.ai"
+  },
+  "license": "MIT"
+}
