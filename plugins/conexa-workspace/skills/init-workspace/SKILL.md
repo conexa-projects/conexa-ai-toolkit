@@ -1,6 +1,6 @@
 ---
 name: init-workspace
-description: "Crea (o adapta) un repositorio raíz de workspace para trabajar con agentes sobre varios repos a la vez: AGENTS.md como fuente de verdad, CLAUDE.md que lo importa, los repos de trabajo como carpetas hermanas ignoradas por git y clonadas por un bootstrap, subagentes genéricos (code-reviewer, security-reviewer, explorer) más un experto por cada repo, un mapa de contexto generado que acelera la lectura, y una memoria versionada (knowledge/ + log de decisiones). Usar cuando se pida iniciar, armar, crear, scaffoldear o bootstrapear un workspace, repo raíz, repo de contexto, meta-repo o 'carpeta que agrupe repos' para Claude Code/Codex, con o sin repos existentes; también para sumar esa estructura a un workspace que ya existe. NO crea repos remotos ni pushea."
+description: "Crea (o adapta) un repositorio raíz de workspace para trabajar con agentes sobre varios repos a la vez: AGENTS.md como fuente de verdad, CLAUDE.md que lo importa, los repos de trabajo como carpetas hermanas ignoradas por git y clonadas por un bootstrap, subagentes genéricos (code-reviewer, security-reviewer, explorer) más un experto por stack (un solo nest-expert aunque haya varios backends Nest), un mapa de contexto generado que acelera la lectura, y una memoria versionada (knowledge/ + log de decisiones). Usar cuando se pida iniciar, armar, crear, scaffoldear o bootstrapear un workspace, repo raíz, repo de contexto, meta-repo o 'carpeta que agrupe repos' para Claude Code/Codex, con o sin repos existentes; también para sumar esa estructura a un workspace que ya existe. NO crea repos remotos ni pushea."
 ---
 
 # init-workspace
@@ -81,15 +81,16 @@ Genera `.context/INDEX.md` y `.context/map/<repo>.md`: stack, comandos, estructu
 
 Si el usuario quiere el grafo de graphify: `bash scripts/graphify-setup.sh --dry-run`, mostrá el plan y, con el OK, correlo sin `--dry-run` (sumá `--hooks` o `--mcp` solo si los pidió). Instala todo y construye el grafo code-only, sin costo de LLM. **No uses `graphify install` ni `/graphify .` directo**: con los repos ignorados en la raíz, el grafo sale vacío. Detalle: `references/harness.md`.
 
-## Paso 6 — Un experto por repo
+## Paso 6 — Un experto por stack
 
-Por cada repo clonado, seguí `references/analisis-de-repos.md`:
+No es un experto por repo: los repos se agrupan por stack (framework principal) y cada grupo tiene **un** experto. Varios backends Nest → un `nest-expert`. Seguí `references/expertos-por-stack.md`:
 
-1. Leé su mapa, su README, su `AGENTS.md`/`CLAUDE.md` si tiene, sus manifests y su CI.
-2. Creá `.claude/agents/<carpeta>-expert.md` a partir de `knowledge/templates/repo-expert.md`.
-3. Completá su fila en la tabla de repos de `AGENTS.md` (entre los marcadores `BEGIN repos` / `END repos`).
+1. Agrupá los repos clonados por stack con la línea **Stack** de `.context/INDEX.md`. Si el agrupamiento no es obvio (monorepo mixto, repo sin framework), proponelo al usuario antes de escribir.
+2. Por cada grupo, leé el repo más representativo a fondo y de los demás solo lo que difiere: mapa, README, `AGENTS.md`/`CLAUDE.md`, manifests y CI.
+3. Creá `.claude/agents/<stack>-expert.md` a partir de `knowledge/templates/stack-expert.md`, con todos los repos del grupo en "Repos que cubrís".
+4. Completá la fila de cada repo en la tabla de `AGENTS.md` (entre los marcadores `BEGIN repos` / `END repos`): la columna Experto apunta al experto de su stack.
 
-Los repos que no se pudieron clonar quedan en la tabla con `[no clonado]` y sin experto.
+Los repos que no se pudieron clonar quedan en la tabla con `[no clonado]` y fuera de los expertos.
 
 ## Paso 7 — Cierre
 
@@ -105,7 +106,7 @@ Workspace listo en <destino>
 
 Creado: <n> archivos · Fusionados: <lista> · Sin tocar: <lista>
 Repos: <carpeta> — clonado | enlazado | falló (<motivo>)
-Expertos: <lista de agentes creados>
+Expertos: <stack>-expert ← <carpetas que cubre> (uno por línea)
 Seguridad: security-reviewer (revisión acotada) · security-audit disponible | falta el plugin conexa-guardrails
 Grafo: construido (<n> nodos por repo) | no instalado
 Validador: OK | <problemas pendientes>
@@ -117,5 +118,5 @@ Siguiente paso: abrir Claude Code en <destino>. Para sumar un repo: /agregar-rep
 ## Referencias
 
 - `references/estructura.md` — cada archivo generado, su propósito, y cómo adaptar un workspace existente.
-- `references/analisis-de-repos.md` — cómo leer un repo y escribir su experto.
+- `references/expertos-por-stack.md` — cómo agrupar los repos por stack, qué leer y cómo escribir cada experto.
 - `references/harness.md` — el mapa de contexto, el hook de inicio, la memoria y graphify opcional.

@@ -24,9 +24,9 @@ La raíz es la **capa de contexto**. Versiona reglas, conocimiento, agentes y sc
 | `knowledge/_template.md` | sí | Plantilla de nota |
 | `knowledge/decisiones.md` | sí | Log de decisiones estilo ADR, solo agregar |
 | `knowledge/procesos/idioma.md` | sí | La regla de idioma completa |
-| `knowledge/templates/repo-expert.md` | sí | Plantilla de agente experto por repo |
+| `knowledge/templates/stack-expert.md` | sí | Plantilla de agente experto por stack |
 | `.claude/settings.json` | sí | Permisos (lectura libre, escrituras riesgosas denegadas) y hook `SessionStart` |
-| `.claude/agents/` | sí | `code-reviewer`, `security-reviewer`, `explorer` + un `<repo>-expert` por repo. `security-reviewer` hace la revisión acotada y deriva las auditorías completas a la skill `security-audit` (plugin `conexa-guardrails`, no se copia al workspace) |
+| `.claude/agents/` | sí | `code-reviewer`, `security-reviewer`, `explorer` + un `<stack>-expert` por stack (ej. un `nest-expert` para todos los backends Nest). `security-reviewer` hace la revisión acotada y deriva las auditorías completas a la skill `security-audit` (plugin `conexa-guardrails`, no se copia al workspace) |
 | `.claude/skills/agregar-repo/` | sí | Sumar un repo después del setup |
 | `.claude/skills/capturar/` | sí | Volcar lo aprendido en una sesión a `knowledge/` |
 | `.github/` | sí (opcional) | Workflow del validador y PR template |

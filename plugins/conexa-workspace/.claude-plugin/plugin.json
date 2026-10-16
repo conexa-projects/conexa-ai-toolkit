@@ -1,5 +1,6 @@
 {
   "name": "conexa-workspace",
+  "version": "0.2.0",
   "description": "Crear y auditar workspaces multi-repo para agentes",
   "author": {
     "name": "Conexa Tech Ops",

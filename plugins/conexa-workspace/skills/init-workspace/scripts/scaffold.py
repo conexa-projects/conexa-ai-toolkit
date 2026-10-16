@@ -89,7 +89,7 @@ def main():
     lang = LANG[args.lang]
     tsv = "\n".join(f"{f}\t{u}\t{b}".rstrip("\t") for f, u, b in repos)
     ignore = "\n".join(f"/{f}" for f in folders)
-    rows = "\n".join(f"| `{f}/` | [a completar] | [a completar] | `{f}-expert` |" for f in folders) \
+    rows = "\n".join(f"| `{f}/` | [a completar] | [a completar] | [a completar] |" for f in folders) \
         or "| _(sin repos todavía — sumalos con `/agregar-repo`)_ | | | |"
     values = {
         "NAME": args.name,

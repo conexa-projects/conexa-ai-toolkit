@@ -19,4 +19,4 @@ El código de producto va en el PR de su propio repo.
 - [ ] `node scripts/validate.mjs` pasa en local
 - [ ] Si agregué una nota, está en el índice de `knowledge/README.md`
 - [ ] Si toqué un agente, sigue liviano: apunta al conocimiento en vez de repetirlo
-- [ ] Si sumé un repo, tiene su experto y su fila en la tabla de `AGENTS.md`
+- [ ] Si sumé un repo, está en el experto de su stack y tiene su fila en la tabla de `AGENTS.md`

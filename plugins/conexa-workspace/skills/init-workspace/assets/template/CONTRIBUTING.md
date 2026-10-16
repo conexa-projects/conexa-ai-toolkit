@@ -34,8 +34,9 @@ una entrada: si la decisión cambia, agregá una nueva y marcá la vieja como re
   agente ahora vive en dos lados, y mañana van a decir cosas distintas.
 - **La `description` decide si el agente se dispara.** Nombrá los síntomas y las palabras concretas
   ante las que tiene que aparecer, no el área en abstracto.
-- Para un repo nuevo, usá `/agregar-repo`: arma el experto desde
-  [`knowledge/templates/repo-expert.md`](knowledge/templates/repo-expert.md).
+- **Un experto por stack, no por repo.** Varios repos Nest comparten un `nest-expert`. Para un repo
+  nuevo, usá `/agregar-repo`: lo suma al experto de su stack o, si no existe, lo crea desde
+  [`knowledge/templates/stack-expert.md`](knowledge/templates/stack-expert.md).
 
 ## Qué corre CI
 

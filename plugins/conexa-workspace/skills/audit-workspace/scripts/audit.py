@@ -54,7 +54,7 @@ REVIEWER_RULES = [
 ]
 MACHINE_PATH = re.compile(r"/(?:Users|home)/[A-Za-z0-9._-]+/|[A-Za-z]:\\Users\\[A-Za-z0-9._-]+")
 TEXT_EXT = re.compile(r"\.(md|mjs|js|ts|json|ya?ml|sh|ps1|txt|tsv|toml|py)$|(^|/)\.gitignore$", re.I)
-PLACEHOLDER = re.compile(r"<carpeta>|\[a completar\]|<qué [^>]*>|<dir>|<instalar>|<convención[^>]*>")
+PLACEHOLDER = re.compile(r"<carpeta(?:-[a-z])?>|<stack>|\[a completar\]|<qué [^>]*>|<dir>|<instalar>|<convención[^>]*>")
 TO_CONFIRM = re.compile(r"\[a confirmar\]", re.I)
 MD_LINK = re.compile(r"\[[^\]]*\]\(([^()\s]+)\)")
 CODE_REF = re.compile(r"`([A-Za-z0-9._-]+/[A-Za-z0-9._/@-]+?)(?::L?\d+(?:-\d+)?)?`")
@@ -94,6 +94,22 @@ def frontmatter(text):
         if pm:
             fields[pm.group(1)] = pm.group(2).strip().strip("'\"")
     return fields
+
+
+FRAMEWORK_KEYS = ["NestJS", "Next.js", "Nuxt", "React Native", "Expo", "Angular", "Vue", "Svelte", "Astro", "Electron",
+                  "React", "Express", "Fastify", ".NET", "Python", "Go", "Java", "Terraform"]
+
+
+def stack_key(stack):
+    """El framework principal de una celda de stack ("TypeScript · NestJS · pnpm" -> "NestJS")."""
+    for k in FRAMEWORK_KEYS:
+        if re.search(rf"(?<![\w.]){re.escape(k)}(?![\w])", stack or "", re.I):
+            return k
+    return ""
+
+
+def slug(key):
+    return {"NestJS": "nest", "Next.js": "next", "React Native": "react-native", ".NET": "dotnet"}.get(key, key.lower())
 
 
 def norm_url(url):
@@ -273,9 +289,16 @@ class Audit:
             (".claude/settings.json", "importante", "permisos y hook de inicio"),
             ("knowledge/README.md", "importante", "el índice de la memoria"),
             ("knowledge/_template.md", "mejora", "la plantilla de nota"),
-            ("knowledge/templates/repo-expert.md", "mejora", "la plantilla de experto por repo"),
         ]:
             self.check(d, self.exists(*f.split("/")), sev, f"Falta `{f}`", f"Cubre {why}.", "init-workspace en modo adaptar.")
+        if self.exists("knowledge", "templates", "stack-expert.md"):
+            self.ok(d)
+        elif self.exists("knowledge", "templates", "repo-expert.md"):
+            self.add(d, "mejora", "La plantilla de experto es la vieja, por repo (`repo-expert.md`)",
+                     "El estándar es un experto por stack: varios repos Nest comparten un `nest-expert`.",
+                     "Reemplazarla por `knowledge/templates/stack-expert.md` de la plantilla de init-workspace.")
+        else:
+            self.add(d, "mejora", "Falta `knowledge/templates/stack-expert.md`", "Cubre la plantilla de experto por stack.", "init-workspace en modo adaptar.")
         if self.manifest_kind and self.manifest_kind != "estandar":
             self.add(d, "mejora", f"Manifest en formato no estándar: `{self.manifest_kind}`",
                      "Se leyó igual, pero bootstrap.sh, map.mjs y el validador esperan `bootstrap/repos.tsv`.",
@@ -295,6 +318,10 @@ class Audit:
         table = self.agents_md
         tb, te = table.find("BEGIN repos"), table.find("END repos")
         table = table[tb:te] if tb != -1 and te > tb else table
+        rows = self.table_rows(table)
+        experts = [a for a in self.agents if a.endswith("-expert")]
+        bodies = {a: re.sub(r"<!--.*?-->", "", read(self.p(*self.agent_paths[a].split("/"))), flags=re.S) for a in experts}
+        covered_by = {}  # repo -> expertos que lo cubren
         missing = []
         for r in self.repos:
             rd, path = r["dir"], self.p(r["dir"])
@@ -319,16 +346,26 @@ class Audit:
             inside = [f for f in self.tracked if f == rd or f.startswith(rd + "/")]
             self.check(d, not inside, "critico", f"`{rd}/` está versionado en la raíz ({len(inside)} entradas)",
                        "La raíz no tiene que versionar código de los repos.", f"`git rm -r --cached {rd}` (decisión del usuario).")
-            expert = f"{rd.split('/')[-1]}-expert"
-            keys = [re.sub(r"[^a-z0-9]", "", seg.lower()) for seg in rd.split("/") if len(seg) > 2]
-            alt = [a for a in self.agents if any(k and k in re.sub(r"[^a-z0-9]", "", a.lower()) for k in keys)]
-            if expert in self.agents:
+            # un experto por stack: lo asigna la columna Experto de la tabla, o lo nombra el cuerpo del experto
+            assigned = rows.get(rd, {}).get("experts", [])
+            ghost = [a for a in assigned if a not in self.agent_paths]
+            leaf = rd.split("/")[-1]
+            mentions = [a for a in experts if re.search(rf"`{re.escape(rd)}/?`|\b{re.escape(rd)}/", bodies[a])]
+            legacy = [a for a in experts if a == f"{leaf}-expert"]
+            cover = sorted(set(a for a in assigned if a in self.agent_paths) | set(mentions) | set(legacy))
+            covered_by[rd] = cover
+            if ghost:
+                self.add(d, "importante", f"La tabla asigna `{rd}/` a {', '.join(f'`{g}`' for g in ghost)}, que no existe",
+                         "La sesión principal va a delegar en un agente que no está.", "Crear el experto del stack o corregir la columna Experto.")
+            elif cover:
                 self.ok(d)
-            elif alt:
-                self.add(d, "mejora", f"El experto de `{rd}/` tiene nombre no estándar: `{alt[0]}`", "", f"Renombrar a `{expert}` si no rompe nada.")
             else:
-                self.add(d, "importante", f"`{rd}/` no tiene agente experto", "El trabajo sobre ese repo no tiene a quién delegarse.",
-                         f"`/agregar-repo` o crear `.claude/agents/{expert}.md` desde la plantilla.")
+                self.add(d, "importante", f"`{rd}/` no está cubierto por ningún experto", "El trabajo sobre ese repo no tiene a quién delegarse.",
+                         "`/agregar-repo` lo suma al experto de su stack (o crea `<stack>-expert` desde la plantilla).")
+            for a in assigned:
+                if a in bodies and a not in mentions and a not in legacy:
+                    self.add(d, "mejora", f"`{a}` no menciona `{rd}/` en \"Repos que cubrís\"",
+                             "La tabla se lo asigna, pero el experto no sabe que lo cubre ni sus particularidades.", f"Sumar la fila de `{rd}/` al experto.")
             self.check(d, f"`{rd}/`" in table or f"| {rd}" in table, "mejora", f"`{rd}/` no aparece en la tabla de repos de AGENTS.md",
                        "", "Agregar la fila entre los marcadores.")
         if missing:
@@ -341,13 +378,38 @@ class Audit:
                 continue
             self.add(d, "importante", f"`{u}/` tiene .git pero no está en el manifest",
                      "Otro miembro del equipo no lo va a tener, y puede no estar ignorado.", f"`bash bootstrap/bootstrap.sh --add $(git -C {u} remote get-url origin) --dir {u}`.")
-        for a in self.agents:
-            if a.endswith("-expert"):
-                base = a[:-7]
-                segments = {seg for r in self.repo_dirs for seg in r.split("/")}
-                self.check(d, base in segments or not self.repos, "mejora", f"Experto sin repo del mismo nombre: `{a}`",
-                           f"Ningún repo del manifest se llama `{base}`. Puede cubrir uno con otro nombre (confirmalo) o haber quedado huérfano.",
-                           "Si cubre un repo, nombrarlo `<carpeta>-expert`; si no, borrarlo.")
+        if self.repos:
+            used = {a for c in covered_by.values() for a in c}
+            for a in experts:
+                self.check(d, a in used, "mejora", f"Experto que no cubre ningún repo: `{a}`",
+                           "Ni la tabla de AGENTS.md lo asigna ni nombra a un repo del manifest. Puede haber quedado huérfano.",
+                           "Asignarlo en la columna Experto y listar sus repos en \"Repos que cubrís\", o borrarlo.")
+        # un experto por stack: varios expertos para repos del mismo stack se pisan y duplican conocimiento
+        by_stack = {}
+        for rd, cover in covered_by.items():
+            key = stack_key(rows.get(rd, {}).get("stack", "") or self.map_stack(rd))
+            if key and len(cover) == 1:
+                by_stack.setdefault(key, set()).add(cover[0])
+        for key, ex in sorted(by_stack.items()):
+            if len(ex) > 1:
+                self.add(d, "mejora", f"{len(ex)} expertos para el stack {key}: {', '.join(f'`{e}`' for e in sorted(ex))}",
+                         "El estándar es un experto por stack: el conocimiento del framework queda repetido y las descriptions se pisan.",
+                         f"Consolidarlos en `{slug(key)}-expert`, con una fila por repo en \"Repos que cubrís\".")
+
+    def table_rows(self, table):
+        """Filas de la tabla de repos de AGENTS.md: carpeta -> {stack, experts}."""
+        rows = {}
+        for line in table.splitlines():
+            cells = [c.strip() for c in line.strip().strip("|").split("|")]
+            if len(cells) < 4 or not cells[0].startswith("`"):
+                continue
+            folder = cells[0].strip("`").rstrip("/")
+            rows[folder] = {"stack": cells[2], "experts": re.findall(r"`([A-Za-z0-9._-]+)`", cells[-1])}
+        return rows
+
+    def map_stack(self, rd):
+        m = re.search(r"\*\*Stack:\*\*\s*([^\n]*)", read(self.p(".context", "map", f"{rd}.md")))
+        return m.group(1) if m else ""
 
     def agentes(self):
         d = "agentes"
@@ -370,7 +432,7 @@ class Audit:
             body_lines = len(text.splitlines())
             visible = re.sub(r"<!--.*?-->", "", text, flags=re.S)
             if a.endswith("-expert"):
-                self.check(d, body_lines <= 120, "mejora", f"`{a}`: {body_lines} líneas", "Un experto largo duplica conocimiento que se desincroniza.",
+                self.check(d, body_lines <= 150, "mejora", f"`{a}`: {body_lines} líneas", "Un experto largo duplica conocimiento que se desincroniza.",
                            "Mover lo que sobra a knowledge/ y dejar el puntero.")
                 ph = PLACEHOLDER.findall(visible)
                 self.check(d, not ph, "importante", f"`{a}`: quedaron {len(ph)} placeholders de la plantilla", ", ".join(sorted(set(ph)))[:120], "Completarlos leyendo el repo.")
