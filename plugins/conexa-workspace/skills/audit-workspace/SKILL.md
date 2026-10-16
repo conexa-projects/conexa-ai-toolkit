@@ -32,14 +32,15 @@ Qué chequea cada dimensión y con qué severidad: `references/criterios.md`.
 Lo que un script no puede decidir. Leé solo lo necesario para cada punto:
 
 1. **AGENTS.md como router.** ¿Se entiende en un minuto qué es el workspace y a quién delegar? ¿Las reglas duras son pocas y concretas? ¿Hay contenido que se deduce del código o que debería ser una nota de `knowledge/`?
-2. **Expertos.** Para cada `<repo>-expert` (hasta 5; si hay más, los de repos con más hotspots en `.context/INDEX.md`):
-   - ¿La `description` usa las palabras de alguien con un problema en ese repo?
-   - Verificá **dos comandos** contra el `package.json`, `Makefile` o CI del repo. ¿Existen?
-   - ¿Copia reglas del `AGENTS.md` del repo en vez de referenciarlas?
-   - Los que el script marcó como "sin repo del mismo nombre": ¿cubren un repo con otro nombre?
+2. **Expertos.** El estándar es **un experto por stack** (`nest-expert` para todos los backends Nest), no uno por repo. Para cada `<stack>-expert` (hasta 5; si hay más, los que cubren repos con más hotspots en `.context/INDEX.md`):
+   - ¿La `description` nombra el stack, las carpetas que cubre y las palabras de alguien con un problema ahí?
+   - ¿"Repos que cubrís" coincide con la columna Experto de la tabla de `AGENTS.md`? ¿Las particularidades de cada repo son reales?
+   - Verificá **dos comandos** contra el `package.json`, `Makefile` o CI de un repo que cubre. ¿Existen?
+   - ¿Copia reglas del `AGENTS.md` de un repo en vez de referenciarlas?
+   - Si el workspace todavía tiene expertos por repo (`<carpeta>-expert`), proponé el agrupamiento por stack: `nest-expert ← a, b, c`.
 3. **Notas de knowledge.** Muestreá hasta 5 (las más viejas primero: `git log --format=%cs -1 -- <nota>`). ¿Pasan el test "no se deduce del código"? ¿Siguen siendo ciertas? ¿Hay dos que dicen lo mismo?
 4. **Decisiones.** ¿Tienen su porqué? ¿Hay decisiones evidentes en el código o en AGENTS.md que no están registradas?
-5. **Cobertura.** Repos con mucha actividad (hotspots) y cero notas; stacks presentes (Terraform, pipelines, base de datos) sin experto que los cubra.
+5. **Cobertura.** Repos con mucha actividad (hotspots) y cero notas; stacks presentes (Terraform, pipelines, base de datos) sin experto que los cubra; un experto que mezcla stacks que no tienen nada que ver.
 6. **Onboarding.** ¿Con el README alguien nuevo llega a una sesión útil en 10 minutos?
 7. **Seguridad del tooling.** ¿La skill `security-audit` aparece entre las skills disponibles de la sesión? Si no, el `security-reviewer` deriva a algo que no existe: recomendá instalar el plugin `conexa-guardrails`. Si existe, ¿es la versión aprobada? (`scripts/verify-vendor.sh` del plugin).
 
@@ -69,7 +70,7 @@ Si el workspace no sigue el estándar, sumá un punto 8: **qué partes del está
 <2–4 puntos concretos: sirve para no romperlo al corregir>
 ```
 
-Esfuerzo: `5 min` (un comando), `30 min` (editar unos archivos), `sesión` (escribir expertos o notas).
+Esfuerzo: `5 min` (un comando), `30 min` (editar unos archivos), `sesión` (escribir o consolidar expertos, o notas).
 
 Mostralo en el chat. Si el usuario lo quiere guardar, va a `drafts/auditoria-<fecha>.md` (ignorado por git): `audit.py --out drafts/auditoria-<fecha>.md` para la parte mecánica, y sumá tu revisión.
 
@@ -81,7 +82,8 @@ Nunca apliques nada sin OK explícito, ítem por ítem o por grupo. Ruteá cada 
 |---|---|
 | Piezas faltantes de la estructura | `init-workspace` en modo adaptar |
 | Repo sin clonar, bloque de `.gitignore` desincronizado | `bash bootstrap/bootstrap.sh` |
-| Repo sin experto o sin fila en la tabla | `/agregar-repo` del workspace |
+| Repo sin experto o sin fila en la tabla | `/agregar-repo` del workspace (lo suma al experto de su stack) |
+| Varios expertos para el mismo stack, o expertos por repo | Consolidar en `<stack>-expert` con `knowledge/templates/stack-expert.md` de init-workspace, actualizar la columna Experto y borrar los viejos, con OK |
 | Memoria vacía o capture loop inactivo | `/capturar` en las próximas tareas: no se inventa conocimiento para llenar el hueco |
 | Mapa o grafo desactualizados | `node scripts/map.mjs` · `bash scripts/graphify-setup.sh --refresh` |
 | Credencial versionada | Sacarla del índice **y rotarla**. Rotar es del usuario: decilo explícitamente |

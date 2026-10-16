@@ -36,19 +36,21 @@ Por cada repo del manifest que está presente:
 - es un repo git, y su `origin` coincide con el manifest (comparación normalizada: SSH == HTTPS);
 - está en la rama del manifest, si el manifest fija una;
 - está en el bloque de repos del `.gitignore` (**crítico** si no) y no está versionado en la raíz (**crítico**);
-- tiene un experto `<carpeta>-expert` (se acepta otro nombre que contenga la carpeta, como mejora) y una fila en la tabla de `AGENTS.md`.
+- está cubierto por un experto: el que le asigna la columna Experto de la tabla de `AGENTS.md`, uno que lo nombra en su cuerpo, o un `<carpeta>-expert` heredado (**importante** si ninguno). Si la tabla asigna un experto que no existe, importante; si el experto asignado no menciona al repo, mejora;
+- tiene una fila en la tabla de `AGENTS.md`.
 
 Además:
 - los repos del manifest sin clonar;
 - las carpetas con `.git` que no están en el manifest (**crítico** si además quedaron versionadas);
-- los expertos sin repo del mismo nombre, que requieren confirmación en la revisión de juicio.
+- los expertos que no cubren ningún repo (huérfanos);
+- **un experto por stack:** si repos del mismo framework principal (columna Stack de la tabla o línea Stack del mapa) están repartidos en expertos distintos, mejora: consolidarlos en `<stack>-expert`.
 
 ### Agentes
 Incluye `.claude/agents/` y `plugins/*/agents/`.
 - Genéricos presentes: `code-reviewer`, `security-reviewer`, `explorer`. Skills del workspace: `/agregar-repo`, `/capturar`.
 - Frontmatter con `name` igual al archivo y `description` de al menos 80 caracteres.
 - `tools` declarado. Sin él, el agente hereda herramientas de escritura.
-- Expertos: ≤ 120 líneas, sin placeholders de la plantilla, sin `[a confirmar]` pendientes. Se ignora el contenido de los comentarios HTML.
+- Expertos: ≤ 150 líneas (cubren varios repos), sin placeholders de la plantilla, sin `[a confirmar]` pendientes. Se ignora el contenido de los comentarios HTML.
 - Pares de expertos con descriptions casi iguales (> 70 % de palabras en común), que rutean mal.
 
 ### Memoria

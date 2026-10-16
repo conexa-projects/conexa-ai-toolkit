@@ -4,7 +4,7 @@
     {
       "id": 1,
       "prompt": "Auditá el workspace en ~/code/pagos-ws y decime si está completo",
-      "expected_output": "Corre audit.py, hace la revisión de juicio (router, 2 comandos por experto verificados, muestreo de notas), reporte con puntaje del script, plan de acción ≤7 filas ruteado a comandos/skills, sin modificar nada.",
+      "expected_output": "Corre audit.py, hace la revisión de juicio (router, 2 comandos por experto de stack verificados, expertos por repo detectados como candidatos a consolidar, muestreo de notas), reporte con puntaje del script, plan de acción ≤7 filas ruteado a comandos/skills, sin modificar nada.",
       "files": []
     },
     {

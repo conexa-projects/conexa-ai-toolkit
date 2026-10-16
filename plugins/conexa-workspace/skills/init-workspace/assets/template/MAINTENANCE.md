@@ -26,8 +26,8 @@ principal, así que el capture loop es una acción consciente, no un automatismo
 | Se tomó o se descartó una decisión de diseño | Agregar una entrada | `knowledge/decisiones.md` |
 | Cambió una regla dura del workspace | Editar y abrir PR | `AGENTS.md` |
 | Un agente ruteó mal o le faltó contexto | Ajustar su prompt, que siga liviano | `.claude/agents/` |
-| Se suma un repo al workspace | `/agregar-repo <url>` | `bootstrap/repos.tsv` + experto + `AGENTS.md` |
-| Se da de baja o se renombra un repo | Editar el manifest, el experto y la tabla | `bootstrap/repos.tsv`, `.claude/agents/`, `AGENTS.md` |
+| Se suma un repo al workspace | `/agregar-repo <url>` | `bootstrap/repos.tsv` + experto del stack + `AGENTS.md` |
+| Se da de baja o se renombra un repo | Editar el manifest, la fila en el experto del stack (si era el último repo, borrar el experto) y la tabla | `bootstrap/repos.tsv`, `.claude/agents/`, `AGENTS.md` |
 | Una nota quedó desactualizada | Editarla o borrarla | `knowledge/` |
 | Hiciste `git pull` en un repo y usás el grafo | Nada: se refresca al abrir sesión. Para ya: `bash scripts/graphify-setup.sh --refresh` | `graphify-out/` (local) |
 

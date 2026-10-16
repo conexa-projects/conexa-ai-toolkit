@@ -1,6 +1,6 @@
 ---
 name: agregar-repo
-description: "Suma un repo de trabajo a este workspace: lo registra en bootstrap/repos.tsv, lo clona (o lo enlaza si ya está clonado en otro lado), regenera el mapa de .context/, crea su agente <repo>-expert desde la plantilla y agrega su fila a la tabla de AGENTS.md. Usar cuando se pida agregar, sumar, incorporar o conectar un repo al workspace, o con /agregar-repo <url>. No toca el código del repo."
+description: "Suma un repo de trabajo a este workspace: lo registra en bootstrap/repos.tsv, lo clona (o lo enlaza si ya está clonado en otro lado), regenera el mapa de .context/, lo suma al agente experto de su stack (o crea <stack>-expert desde la plantilla si es el primer repo de ese stack) y agrega su fila a la tabla de AGENTS.md. Usar cuando se pida agregar, sumar, incorporar o conectar un repo al workspace, o con /agregar-repo <url>. No toca el código del repo."
 ---
 
 # Agregar un repo al workspace
@@ -10,6 +10,7 @@ description: "Suma un repo de trabajo a este workspace: lo registra en bootstrap
 - No escribas nada dentro del repo nuevo: solo se lee.
 - Clonar necesita red y credenciales: mostrá el `--dry-run` y esperá el OK antes de clonar.
 - Todo lo que pongas en el experto sale de leer el repo. Lo no verificado va `[a confirmar]`.
+- Un experto por stack, no por repo: si ya hay un experto para el stack del repo, se suma a ese.
 
 ## Pasos
 
@@ -25,12 +26,19 @@ description: "Suma un repo de trabajo a este workspace: lo registra en bootstrap
 4. **Leer el repo**, en este orden y parando cuando alcance: su `AGENTS.md`/`CLAUDE.md` (sus reglas
    mandan adentro del repo), README, manifests y sus scripts, CI, dos o tres entrypoints del mapa,
    `.env.example` (solo nombres de variables).
-5. **Experto.** Copiá `knowledge/templates/repo-expert.md` a `.claude/agents/<carpeta>-expert.md` y
-   completalo. La `description` lleva las palabras que usaría alguien con un problema en ese repo; si
-   se puede confundir con otro experto, decí qué no cubre. Menos de 80 líneas. Cada comando tiene que
-   existir en un manifest o en el CI.
+5. **Experto del stack.** Con la línea **Stack** del mapa, definí la clave del stack: el framework
+   principal (`nest`, `next`, `react`, `angular`...); sin framework, el lenguaje (`python`, `dotnet`).
+   Mirá la columna Experto de la tabla de `AGENTS.md` y `.claude/agents/*-expert.md`:
+   - **Ya existe `<stack>-expert`:** sumá el repo a su tabla "Repos que cubrís" (qué es y
+     particularidades), agregá la carpeta y los términos de dominio nuevos a la `description`, y anotá
+     como divergencia lo que haga distinto (comandos, convenciones). No reescribas lo común.
+   - **No existe:** copiá `knowledge/templates/stack-expert.md` a `.claude/agents/<stack>-expert.md` y
+     completalo. La `description` lleva el stack, la carpeta y las palabras que usaría alguien con un
+     problema ahí; si se puede confundir con otro experto, decí qué no cubre.
+   - Si el stack no es obvio (monorepo mixto, repo sin framework), proponé a qué experto va y esperá el OK.
+   Menos de 100 líneas por experto. Cada comando tiene que existir en un manifest o en el CI.
 6. **Tabla.** Agregá la fila entre `<!-- BEGIN repos -->` y `<!-- END repos -->` de `AGENTS.md`:
-   `` | `<carpeta>/` | <qué es> | <stack> | `<carpeta>-expert` | ``. Si la tabla tenía la fila de
+   `` | `<carpeta>/` | <qué es> | <stack> | `<stack>-expert` | ``. Si la tabla tenía la fila de
    "sin repos todavía", reemplazala.
 7. **Validar.** `git add` por nombre de los archivos tocados (manifest, `.gitignore`, experto,
    `AGENTS.md`) y `node scripts/validate.mjs`. Verificá con `git status` que la carpeta del repo **no**
@@ -41,7 +49,7 @@ description: "Suma un repo de trabajo a este workspace: lo registra en bootstrap
 
 ```
 Repo <carpeta> agregado — clonado | enlazado | falló (<motivo>)
-Experto: .claude/agents/<carpeta>-expert.md
+Experto: .claude/agents/<stack>-expert.md — creado | actualizado (cubre: <carpetas>)
 [a confirmar]: <lista>
 Validador: OK | <problemas>
 ```
