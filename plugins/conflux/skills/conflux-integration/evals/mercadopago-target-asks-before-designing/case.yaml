@@ -1,0 +1,8 @@
+schema_version: "1.1"
+name: mercadopago-target-asks-before-designing
+expected_outcome: |
+  Before designing, lists the provider questions (Idempotency-Key support, webhooks and their
+  signature, sandbox/environments, states and finality) and marks which are open; proposes the
+  decisions the person must take with a recommendation; designs the `targets` document before any
+  code; places Mercado Pago's payload rules in a new `@conflux/target-mercadopago` package; does not
+  change Dispatcher/Handler/Broker code; adds Mercado Pago to the architecture-test lists.

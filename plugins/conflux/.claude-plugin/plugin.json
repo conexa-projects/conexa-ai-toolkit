@@ -1,0 +1,9 @@
+{
+  "name": "conflux",
+  "version": "0.1.0",
+  "description": "Reglas y método para integrar targets, integradores, plataformas, operaciones y mecanismos en Conflux, con el archivo de certificación de producción",
+  "author": {
+    "name": "Conexa Tech Ops",
+    "email": "ezequiel@conexa.ai"
+  }
+}

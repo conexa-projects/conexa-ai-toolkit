@@ -8,6 +8,7 @@ Marketplace interno de Conexa para Claude Code.
 claude plugin marketplace add conexa-projects/conexa-ai-toolkit
 claude plugin install conexa-workspace@conexa
 claude plugin install conexa-guardrails@conexa
+claude plugin install conflux@conexa
 ```
 
 ## Plugins
@@ -16,6 +17,7 @@ claude plugin install conexa-guardrails@conexa
 |---|---|
 | [conexa-workspace](plugins/conexa-workspace) | init-workspace, audit-workspace |
 | [conexa-guardrails](plugins/conexa-guardrails) | security-audit (Cloudflare, versión fija) + reglas de Conexa |
+| [conflux](plugins/conflux) | conflux-integration: reglas para integrar en Conflux y archivo de certificación de producción |
 
 Se instalan juntos: el `security-reviewer` que genera init-workspace deriva las auditorías completas a `security-audit`.
 

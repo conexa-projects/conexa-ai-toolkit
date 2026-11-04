@@ -1,0 +1,9 @@
+schema_version: "1.1"
+name: certification-file-for-target
+expected_outcome: |
+  Produces a Spanish certification document with stable IDs (prefix-area-number), type B/E/C/S,
+  general and specific scope, verification method, reference, empty evidence, every case Pendiente or
+  A definir; covers idempotency, delivery/retries including outcome_unknown when Idempotency-Key is
+  not honored, DLQ codes, auth, schema validation, metering, observability, security and
+  infrastructure evidence; adds PayU-specific cases and open questions as A definir; includes the
+  production verdict criteria; does not mark anything as passing.

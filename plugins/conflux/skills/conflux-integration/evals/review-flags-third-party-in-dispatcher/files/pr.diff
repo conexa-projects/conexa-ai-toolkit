@@ -1,0 +1,39 @@
+diff --git a/internal/pipeline/interpretar.go b/internal/pipeline/interpretar.go
+index 3c1a9e2..8f04b7d 100644
+--- a/internal/pipeline/interpretar.go
++++ b/internal/pipeline/interpretar.go
+@@ -41,6 +41,34 @@ func interpretar(t *registry.Target, res *delivery.Result) (outcome, error) {
+ 	if res.StatusCode >= 400 {
+ 		return outcomeRejected, nil
+ 	}
++	// Mercado Pago devuelve 201 aunque el pago quede rechazado: el estado real
++	// viene en el cuerpo. Lo leemos acá para no tener que tocar el Registry.
++	if t.ID == "mercadopago" || t.ID == "mercadopago-test" {
++		var cuerpo struct {
++			Status       string `json:"status"`
++			StatusDetail string `json:"status_detail"`
++		}
++		if err := json.Unmarshal(res.Body, &cuerpo); err != nil {
++			return outcomeApproved, nil
++		}
++		if cuerpo.Status == "rejected" {
++			slog.Info("mercadopago rejected payment", "status_detail", cuerpo.StatusDetail, "body", string(res.Body))
++			return outcomeRejected, nil
++		}
++		return outcomeApproved, nil
++	}
+ 	if t.StatusMapping == nil {
+ 		return outcomeApproved, nil
+ 	}
+diff --git a/internal/arquitectura/terceros_test.go b/internal/arquitectura/terceros_test.go
+index 1b2c3d4..5e6f7a8 100644
+--- a/internal/arquitectura/terceros_test.go
++++ b/internal/arquitectura/terceros_test.go
+@@ -38,7 +38,6 @@ var PalabrasProhibidas = []string{
+ 	"shopify",
+ 	"khipu",
+ 	"paymentsession",
+-	"payment_id",
+ 	"myshopify",
+ 	"gid://shopify",
+ }

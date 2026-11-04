@@ -1,0 +1,111 @@
+{
+  "_doc": "Template for a `targets` document. Strip every `_doc` key before loading. One document per provider AND per environment when the environment is chosen by credential. Field meanings and load-rejection rules: references/registry-documents.md. Secret references are the Secrets Manager SecretId as-is, without a `secretsmanager:` prefix (the Dispatcher and the Handler use the reference verbatim). Remove the blocks that do not apply (federation, oauth, credential_validation, async blocks) instead of leaving them empty.",
+  "_id": "<target_id>",
+  "target_id": "<target_id>",
+  "endpoint_base": "https://api.<provider>.example",
+  "status": "active",
+
+  "auth": {
+    "_doc": "strategy: api-key | oauth2-client-credentials | oauth2_delegated | api-key-delegated. scope: target (Conexa's credential) | merchant (per-merchant). secret_ref only for api-key. header_name/header_prefix for api-key and api-key-delegated (no default).",
+    "strategy": "<strategy>",
+    "scope": "<target|merchant>",
+    "secret_ref": "conflux/<target_id>/api_key",
+    "header_name": "<header>",
+    "header_prefix": ""
+  },
+
+  "oauth": {
+    "_doc": "Only for oauth2-client-credentials.",
+    "token_endpoint": "https://auth.<provider>.example/oauth/token",
+    "client_id_ref": "conflux/apps/<target_id>/client_id",
+    "client_secret_ref": "conflux/apps/<target_id>/client_secret",
+    "scopes": ["<scope>"]
+  },
+
+  "federation": {
+    "_doc": "Only for oauth2_delegated (merchant OAuth, read by the Broker). Register Conexa's app with the exact redirect URI first.",
+    "authorization_endpoint": "https://auth.<provider>.example/oauth/authorize",
+    "token_endpoint": "https://auth.<provider>.example/oauth/token",
+    "client_id_ref": "conflux/apps/<target_id>/client_id",
+    "client_secret_ref": "conflux/apps/<target_id>/client_secret",
+    "scopes": ["<scope>"],
+    "pkce": true
+  },
+
+  "credential_validation": {
+    "_doc": "Only for manual credentials (api-key-delegated). A cheap read-only endpoint; explicit status lists.",
+    "method": "GET",
+    "path": "/<ping-endpoint>",
+    "auth_header": "<header>",
+    "header_prefix": "",
+    "ok_status": [200],
+    "invalid_status": [401]
+  },
+
+  "supports_idempotency_key": false,
+  "dedup_window_seconds": 172800,
+  "default_timeout_ms": 5000,
+  "rate_limit_rpm": 600,
+
+  "operations": {
+    "_doc": "Names <object>.<verb>. method default POST; GET/DELETE go without body. {field} in path comes from payload.<field>. Must match the package's operation table exactly.",
+    "payment.create": { "mode": "sync", "method": "POST", "path": "/v1/payments", "timeout_ms": 5000, "confirms_async": true, "announce_provisional": false },
+    "payment.get":    { "mode": "sync", "method": "GET",  "path": "/v1/payments/{payment_id}", "timeout_ms": 3000 },
+    "refund.create":  { "mode": "sync", "method": "POST", "path": "/v1/refunds", "timeout_ms": 5000 }
+  },
+
+  "status_mapping": {
+    "_doc": "Every state the provider can return, mapped to pending | authorized | captured | declined | voided | failed | refunded. An unmapped 2xx is not success.",
+    "field": "status",
+    "values": { "<provider_state>": "<normalized_state>" }
+  },
+
+  "_doc_async": "Everything below only if some operation has confirms_async.",
+  "tx_id_path": "$.<transaction_id_field>",
+  "confirmation_window_seconds": 86400,
+  "result_ttl_s": 345600,
+
+  "webhook_status": {
+    "source": "json",
+    "path": "$.status",
+    "approved": ["<state>"],
+    "rejected": ["<state>"],
+    "non_terminal": ["<state>"]
+  },
+
+  "webhook": {
+    "signature": {
+      "_doc": "timestamp_unit is mandatory (s|ms). signed_payload: timestamp.body unless the provider signs only the body (then anti-replay protects nothing). mode advisory only with reconciliation.",
+      "strategy": "hmac-sha256-timestamped",
+      "header": "<signature-header>",
+      "timestamp_key": "t",
+      "signature_key": "s",
+      "signed_payload": "timestamp.body",
+      "timestamp_unit": "<s|ms>",
+      "encoding": "<hex|base64>",
+      "tolerance_s": 300,
+      "mode": "enforce",
+      "secret_ref": "conflux/<target_id>/webhook_hmac"
+    },
+    "tx_id_path": "$.<transaction_id_field>"
+  },
+
+  "provider_states": {
+    "_doc": "Applied to the re-query result. A value in no list is unknown: never finalizes, closes as unconfirmed on expiry. detail_path and the detail lists only if the provider splits state and detail.",
+    "status_path": "$.status",
+    "final_success": ["<state>"],
+    "final_failure": ["<state>"],
+    "non_final": ["<state>"],
+    "detail_path": "$.status_detail",
+    "final_failure_details": ["<detail>"],
+    "final_success_details": ["<detail>"]
+  },
+
+  "reconciliation": {
+    "_doc": "operation must be declared in operations; the Dispatcher does not meter it.",
+    "operation": "payment.get",
+    "vars_from_result": { "payment_id": "$.body.<transaction_id_field>" },
+    "expires_at_path": "$.body.<expiry_field>",
+    "interval_s": 300
+  }
+}

@@ -1,0 +1,9 @@
+schema_version: "1.1"
+name: review-flags-third-party-in-dispatcher
+expected_outcome: |
+  Flags the Mercado Pago name and provider-specific status parsing in the Dispatcher as blocking,
+  explains it breaks the no-third-party rule and the architecture test, proposes `status_mapping` in
+  the target document instead, and flags that treating 2xx as approved/other money-safety issues;
+  organizes findings by severity with file/line.
+context:
+  scaffold_script: place-files.sh

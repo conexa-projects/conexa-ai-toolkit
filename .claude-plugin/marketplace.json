@@ -15,6 +15,11 @@
       "name": "conexa-guardrails",
       "source": "./plugins/conexa-guardrails",
       "description": "Guardrails de seguridad: security-audit de Cloudflare (versión fija y revisada) con reglas de Conexa"
+    },
+    {
+      "name": "conflux",
+      "source": "./plugins/conflux",
+      "description": "Reglas y método para integrar en Conflux, con el archivo de certificación de producción"
     }
   ]
 }

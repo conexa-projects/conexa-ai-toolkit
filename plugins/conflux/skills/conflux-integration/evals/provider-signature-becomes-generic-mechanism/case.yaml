@@ -1,0 +1,8 @@
+schema_version: "1.1"
+name: provider-signature-becomes-generic-mechanism
+expected_outcome: |
+  Does not write Getnet-specific code in the Handler. Checks the existing `hmac-sha256-timestamped`
+  strategy, proposes a generic strategy named by mechanism (e.g. parameterized algorithm/format)
+  configured from the target document, flags the missing timestamp (no anti-replay) and the need for
+  reconciliation/advisory or acceptance, asks for approval before implementing, and adds Getnet to the
+  Handler's forbidden-names list.
