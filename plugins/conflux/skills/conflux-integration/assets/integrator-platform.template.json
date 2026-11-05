@@ -1,0 +1,25 @@
+{
+  "_doc": "Template for an `integrator_platforms` document (only for integrators with type platform). Federation only: how the merchant authorizes Conflux at the platform. How to call the platform's API is processor code, never here. Strip every `_doc` key before loading.",
+  "_id": "<platform_id = integrator_id>",
+  "federation": {
+    "_doc": "{merchant_id} in the endpoints when the platform authorizes on each shop's domain. callback_validation must name an existing strategy (e.g. hmac-sha256-query) or a new mechanism approved first. refresh_required false only for perpetual tokens.",
+    "authorization_endpoint": "https://{merchant_id}/oauth/authorize",
+    "token_endpoint": "https://{merchant_id}/oauth/access_token",
+    "client_id_ref": "conflux/platforms/<platform_id>/client_id",
+    "client_secret_ref": "conflux/platforms/<platform_id>/client_secret",
+    "scopes": ["<scope>"],
+    "scope_separator": ",",
+    "redirect_uri": "https://<conflux-connect-host>/oauth/callback/integrator/<platform_id>",
+    "callback_validation": {
+      "strategy": "hmac-sha256-query",
+      "signature_param": "hmac",
+      "merchant_param": "shop",
+      "secret_ref": "conflux/platforms/<platform_id>/client_secret"
+    },
+    "refresh_required": true,
+    "token_request_params": {},
+    "renew_min_remaining_s": 3600,
+    "merchant_id_pattern": "^[a-z0-9][a-z0-9-]*\\.<platform-domain>$"
+  },
+  "status": "active"
+}

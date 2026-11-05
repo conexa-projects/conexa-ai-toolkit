@@ -1,0 +1,7 @@
+schema_version: "1.1"
+name: business-logic-goes-to-processor
+expected_outcome: |
+  Places the target choice by amount and the 30-day refund decision in Coppel's processor; does not
+  propose Dispatcher or Registry routing logic; distinguishes provider rules (in each target package)
+  from integrator business rules (processor); asks whether the 30-day rule is Coppel's or a provider's
+  before placing it.

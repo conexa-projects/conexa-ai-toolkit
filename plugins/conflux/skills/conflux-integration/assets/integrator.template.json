@@ -1,0 +1,9 @@
+{
+  "_doc": "Template for an `integrators` document. Strip every `_doc` key before loading. For a platform integrator, _id equals its integrator_platforms._id and webhook_url points to its processor's internal endpoint.",
+  "_id": "<integrator_id>",
+  "type": "api",
+  "allowed_targets": ["<target_id>"],
+  "allowed_return_url_hosts": ["<exact-host.example>", "*.<integrator-domain.example>"],
+  "webhook_url": "https://<integrator-backend.example>/conflux/notifications",
+  "webhook_secret_refs": ["conflux/integrators/<integrator_id>/webhook_secret"]
+}

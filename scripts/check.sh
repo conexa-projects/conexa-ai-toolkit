@@ -44,4 +44,7 @@ echo "› conexa-workspace: el validador detecta un informe de seguridad version
 mkdir -p "$WS/docs" && echo '[]' > "$WS/docs/coverage-ledger.json"
 (cd "$WS" && git add docs/coverage-ledger.json && ! node scripts/validate.mjs >/dev/null 2>&1)
 
+echo "› conflux: plantillas JSON de conflux-integration parsean"
+for f in "$ROOT"/plugins/conflux/skills/conflux-integration/assets/*.json; do python3 -m json.tool "$f" >/dev/null; done
+
 echo "✓ todo OK"

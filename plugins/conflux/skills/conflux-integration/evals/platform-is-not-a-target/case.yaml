@@ -1,0 +1,8 @@
+schema_version: "1.1"
+name: platform-is-not-a-target
+expected_outcome: |
+  Never models Tienda Nube as a target; treats it as an integrator with its own processor; asks or
+  determines whether it is an API integrator or a platform with app model (does it call our API or
+  expect us to call its API); if platform, uses `integrators.type: platform` and
+  `integrator_platforms` for federation only, with platform calls in the processor and tokens from the
+  Broker; reuses the Khipu target and package.
