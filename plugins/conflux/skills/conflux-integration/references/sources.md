@@ -14,6 +14,7 @@ Rules for applying it:
 - **ADR-015 is superseded by ADR-016**, even though its page does not say so.
 - **When `main` deviates from an Accepted ADR**, follow the ADR and name the deviation as a known gap (both ADR-016 and ADR-017 list their own deviations from the code).
 - **Shopify + Khipu is an example, not a design.** That integration will not move forward. Use its Confluence page and code as lessons; where its page contradicts `main` (for example, it says the Dispatcher answers the platform through `integrator_platforms` templates; `main` removed that), `main` wins.
+- **Conexa's API Design Guidelines rank below an Accepted Conflux ADR.** Where no ADR covers the subject they apply to new code; where `main` differs and no ADR decides, ask. The clashes and their resolutions are in `references/api-guidelines.md`.
 - **If two sources of the same rank disagree, do not choose: ask.**
 
 ## What to read for each question

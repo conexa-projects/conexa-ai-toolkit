@@ -54,7 +54,7 @@ Follow these steps in order. Steps 2 and 3 are where integrations went wrong bef
 2. **Ask the third party before designing.** Produce the questions from `references/third-party-questions.md` for this type and mark which ones are already answered by official documentation (cite it) and which are open. Open questions that change the design block the design; say so. Then check each answer against what `main` can actually do today (`references/sources.md`, "Known capability limits"): a provider that needs something Conflux does not support yet is a new mechanism, not a configuration detail.
 3. **Decide with the person.** List the decisions this integration needs (where each piece goes, new mechanism or existing one, environments as separate targets, versions, branch names, what is out of scope) with your recommendation for each, and wait.
 4. **Design in configuration first.** Write the Registry documents (`targets` and/or `integrators`, `integrator_platforms`) from `assets/` before touching code. If something cannot be expressed in a document, decide — with the person — whether it is (a) processor logic, (b) target package logic, or (c) a new generic capability for the Dispatcher, Handler or Broker (then it is also a "new mechanism" and follows its checklist). Never (d) third-party code in those components.
-5. **Build the artifacts** the checklist lists, each in its repo, on a branch from `main`, with tests.
+5. **Build the artifacts** the checklist lists, each in its repo, on a branch from `main`, with tests. Code inside a service (endpoint, consumer, provider adapter, webhook) follows Conexa's API Design Guidelines through the `conexa-api-implementation` skill, with the Conflux resolutions in `references/api-guidelines.md`.
 6. **Write the certification file** (below).
 7. **Document.** A short ADR from `assets/adr-integration.template.md` in the owning repo's `docs/`, ready for the person to publish in the Confluence ADR folder (publishing is their call), plus the README/docs updates of each touched repo. Pre-production gates are listed explicitly, never left implicit.
 8. **Check against `references/anti-patterns.md`** before calling it done, and say which gates remain open.
@@ -76,4 +76,5 @@ The certification file is a document, not an executable suite: your analysis of 
 | `references/certification.md`, `references/certification-cases.md` | Step 6 |
 | `references/anti-patterns.md` | Step 8, and during any review |
 | `references/review.md` | Reviewing a PR or design |
+| `references/api-guidelines.md` | Writing service code, or when Conexa's API Design Guidelines and Conflux seem to disagree |
 | `assets/*` | Templates for documents, certification, ADR and infra ticket |
