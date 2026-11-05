@@ -20,6 +20,11 @@
       "name": "conflux",
       "source": "./plugins/conflux",
       "description": "Reglas y método para integrar en Conflux, con el archivo de certificación de producción"
+    },
+    {
+      "name": "conexa-api",
+      "source": "./plugins/conexa-api",
+      "description": "Implementación de APIs de Conexa según los API Design Guidelines, en cualquier lenguaje"
     }
   ]
 }

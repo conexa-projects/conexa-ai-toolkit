@@ -1,0 +1,9 @@
+{
+  "name": "conexa-api",
+  "version": "0.1.0",
+  "description": "Implementación de APIs de Conexa siguiendo los API Design Guidelines, en cualquier lenguaje: endpoints, eventos, adaptadores de proveedores, webhooks salientes y jobs",
+  "author": {
+    "name": "Conexa Tech Ops",
+    "email": "ezequiel@conexa.ai"
+  }
+}
