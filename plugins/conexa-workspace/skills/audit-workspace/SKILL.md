@@ -10,6 +10,7 @@ Auditás una raíz de workspace contra el estándar de `init-workspace` y devolv
 ## Reglas duras
 
 - **Solo lectura.** No edites, no commitees, no corras `bootstrap.sh`, `map.mjs` ni `graphify-setup.sh` durante la auditoría. El script de auditoría no escribe nada salvo que le pases `--out`.
+- **No ejecutes código del workspace auditado.** El script tampoco lo hace: corre el `validate.mjs` de la plantilla de `init-workspace` sobre el workspace, nunca el del workspace. Si el workspace es de un tercero o no confiás en él, sumá `--no-exec` y no se ejecuta nada.
 - **No entres a modificar los repos de trabajo.** Leerlos para verificar referencias está bien.
 - **Cada hallazgo con evidencia:** archivo, línea o comando que lo muestra. Sin "podría mejorarse" sin decir qué y cómo.
 - **Separá lo mecánico de lo de juicio.** El puntaje sale solo del script; tu revisión agrega hallazgos marcados como `[juicio]`, sin tocar el número.
@@ -18,7 +19,7 @@ Auditás una raíz de workspace contra el estándar de `init-workspace` y devolv
 ## Paso 1 — Chequeo mecánico
 
 ```bash
-python3 <dir-de-esta-skill>/scripts/audit.py <raíz> [--json] [--template <dir>]
+python3 <dir-de-esta-skill>/scripts/audit.py <raíz> [--json] [--template <dir>] [--no-exec]
 ```
 
 - Si el usuario no dio la raíz, usá el directorio actual si tiene `AGENTS.md`, `CLAUDE.md` o `bootstrap/`; si no, preguntá.
@@ -83,6 +84,7 @@ Nunca apliques nada sin OK explícito, ítem por ítem o por grupo. Ruteá cada 
 | Piezas faltantes de la estructura | `init-workspace` en modo adaptar |
 | Repo sin clonar, bloque de `.gitignore` desincronizado | `bash bootstrap/bootstrap.sh` |
 | Repo sin experto o sin fila en la tabla | `/agregar-repo` del workspace (lo suma al experto de su stack) |
+| Repo que ya no va, o carpeta con otro nombre que el manifest | `/quitar-repo` del workspace (baja o renombre) |
 | Varios expertos para el mismo stack, o expertos por repo | Consolidar en `<stack>-expert` con `knowledge/templates/stack-expert.md` de init-workspace, actualizar la columna Experto y borrar los viejos, con OK |
 | Memoria vacía o capture loop inactivo | `/capturar` en las próximas tareas: no se inventa conocimiento para llenar el hueco |
 | Mapa o grafo desactualizados | `node scripts/map.mjs` · `bash scripts/graphify-setup.sh --refresh` |
@@ -90,6 +92,7 @@ Nunca apliques nada sin OK explícito, ítem por ítem o por grupo. Ruteá cada 
 | Repo versionado en la raíz | `git rm -r --cached <carpeta>`, con aprobación |
 | `security-reviewer` sin las reglas actuales | Diff contra la plantilla de `init-workspace` y fusión con OK |
 | Informe de seguridad versionado | `git rm --cached`, sumar el bloque al `.gitignore`; si llegó al remoto, tratarlo como filtración |
-| Script distinto a la plantilla | Mostrá el `diff` primero: puede ser una personalización intencional |
+| Archivos de una versión vieja de la plantilla, sin modificar | `init-workspace` en modo actualizar: `scaffold.py --target <raíz> --upgrade --dry-run`, y con OK sin `--dry-run`. Pisa solo lo que nadie tocó |
+| Script modificado respecto de la plantilla | Mostrá el `diff` primero: puede ser una personalización intencional. `--upgrade` no lo pisa |
 
 Después de corregir, volvé a correr el script y mostrá el antes y el después del puntaje.

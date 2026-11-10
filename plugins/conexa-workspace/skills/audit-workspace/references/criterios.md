@@ -10,7 +10,12 @@ Qué chequea `scripts/audit.py`, con qué severidad y por qué. El estándar de 
 | 🟠 Importante | Algo que no funciona o falta y se nota en el uso diario | 5 |
 | 🟡 Mejora | Funciona, pero hay fricción, deriva o una pieza opcional ausente | 1 |
 
-Puntaje = 100 − penalidades, con piso 0. El nivel sale del puntaje, salvo que haya un crítico, que lo fuerza a "Riesgo":
+Puntaje = 100 − penalidades, con piso 0. Dos reglas evitan que el volumen hunda el número:
+
+- **Los hallazgos del mismo tipo se agrupan** (el mismo chequeo sobre distintos repos, archivos o agentes): el primero resta entero, el segundo y el tercero la mitad, del cuarto en adelante nada. Doce repos sin experto restan 10, no 60.
+- **Cada dimensión resta como mucho 30.** La columna "Resta" de la tabla muestra cuánto aportó cada una.
+
+Todos los hallazgos se listan igual, aunque no sumen. El nivel sale del puntaje, salvo que haya un crítico, que lo fuerza a "Riesgo":
 
 | Puntaje | Nivel |
 |---|---|
@@ -19,7 +24,7 @@ Puntaje = 100 − penalidades, con piso 0. El nivel sale del puntaje, salvo que 
 | 40–69 | Parcial |
 | < 40 | Incipiente |
 
-El puntaje sirve para comparar un mismo workspace en el tiempo, no workspaces entre sí: uno con 100 repos acumula más hallazgos por volumen.
+El puntaje sirve sobre todo para comparar un mismo workspace en el tiempo. Entre workspaces es orientativo: la cantidad de hallazgos sigue dependiendo del tamaño, aunque el número ya no.
 
 ## Dimensiones
 
@@ -43,12 +48,12 @@ Además:
 - los repos del manifest sin clonar;
 - las carpetas con `.git` que no están en el manifest (**crítico** si además quedaron versionadas);
 - los expertos que no cubren ningún repo (huérfanos);
-- **un experto por stack:** si repos del mismo framework principal (columna Stack de la tabla o línea Stack del mapa) están repartidos en expertos distintos, mejora: consolidarlos en `<stack>-expert`.
+- **un experto por stack:** si repos del mismo framework principal (columna Stack de la tabla o línea Stack del mapa) están repartidos en expertos distintos, mejora: consolidarlos en `<stack>-expert`. La clave de stack es la de `expertos-por-stack.md` de init-workspace: Express y Fastify cuentan como `node-api`; Terraform y Helm, como `infra`.
 
 ### Agentes
 Incluye `.claude/agents/` y `plugins/*/agents/`.
-- Genéricos presentes: `code-reviewer`, `security-reviewer`, `explorer`. Skills del workspace: `/agregar-repo`, `/capturar`.
-- Frontmatter con `name` igual al archivo y `description` de al menos 80 caracteres.
+- Genéricos presentes: `code-reviewer`, `security-reviewer`, `explorer`. Skills del workspace: `/agregar-repo`, `/quitar-repo`, `/capturar`.
+- Frontmatter con `name` igual al archivo y `description` de al menos 80 caracteres. Se leen descriptions de una línea, de bloque (`>-`, `|`) y con continuación indentada.
 - `tools` declarado. Sin él, el agente hereda herramientas de escritura.
 - Expertos: ≤ 150 líneas (cubren varios repos), sin placeholders de la plantilla, sin `[a confirmar]` pendientes. Se ignora el contenido de los comentarios HTML.
 - Pares de expertos con descriptions casi iguales (> 70 % de palabras en común), que rutean mal.
@@ -63,13 +68,14 @@ Incluye `.claude/agents/` y `plugins/*/agents/`.
 - **Referencias a código rotas:** menciones entre backticks a `repo/ruta` en notas y agentes que ya no existen en el repo clonado. Es la señal más directa de conocimiento desactualizado.
 
 ### Seguridad
-- Credenciales versionadas (**crítico**).
+- Credenciales versionadas, por nombre de archivo (**crítico**).
+- Secretos en el contenido de cualquier archivo versionado (**crítico**): clave privada, tokens de GitHub, AWS, Slack, Anthropic y Google. Se reporta archivo, línea y los primeros 4 caracteres. Se ignoran los que contienen `EXAMPLE`. Son los mismos patrones que usa `validate.mjs`.
 - Informes de auditoría de seguridad versionados: `security-audit/`, `coverage-ledger.json`, `FINDINGS-DETAIL.md`, `NEEDS-VALIDATION.md` (**crítico**: traen caminos de explotación).
 - `.gitignore` con `/security-audit/` (mejora).
 - `security-reviewer`, si existe: sin `Write`/`Edit` en `tools` (importante); enmascara secretos (importante); prohíbe ejecutar código del repo (importante); exige frontera y resultado para reportar (mejora); deriva las auditorías completas a la skill `security-audit` (mejora).
 - Rutas absolutas de máquina personal en archivos versionados.
 - `.gitignore` con `.env`, `*.pem` y `*.key`.
-- `settings.json`: JSON válido (**crítico** si no, porque Claude Code lo ignora entero); sin permisos amplios en `allow` (`Bash`, `Bash(*)`, `git push`, `git -C`, `rm`, `git reset`); `deny` de lectura de `.env` y de `git push --force`.
+- `settings.json`: JSON válido (**crítico** si no, porque Claude Code lo ignora entero); sin permisos amplios en `allow` (`Bash`, `Bash(*)`, `git push`, `git -C`, `rm`, `git reset`); sin permisos "de lectura" que también escriben (`Bash(find:*)` habilita `-delete` y `-exec`; `Bash(git branch:*)` habilita `-D`); `deny` de lectura de `.env` y de `git push --force`.
 - Hooks con rutas absolutas en el `settings.json` compartido, que fallan en otras máquinas.
 
 ### Harness
@@ -82,12 +88,14 @@ Incluye `.claude/agents/` y `plugins/*/agents/`.
   - cada repo presente tiene nodos (si no, se construyó respetando el `.gitignore` de la raíz);
   - está al día;
   - no hay hooks de graphify en el settings compartido.
-- Scripts distintos a la plantilla actual de `init-workspace` (hash). Es una mejora, porque puede ser una personalización intencional.
+- Deriva respecto de la plantilla actual de `init-workspace`, por hash, en dos hallazgos distintos:
+  - **versión vieja sin modificar:** el archivo coincide con el sello (`bootstrap/template.lock.json`) o con una versión publicada (`template-history.json`). Vale para cualquier archivo de la plantilla que no sea propio del workspace. Se arregla solo con `scaffold.py --upgrade`;
+  - **script modificado:** no coincide con ninguna versión conocida. Solo se reporta para los scripts (`bootstrap.sh`, `map.mjs`, `validate.mjs`, `session-start.sh`, `graphify-setup.sh`): agentes y documentos se personalizan por diseño.
 
 ### CI
 - Un workflow corre `validate.mjs`.
 - Hay PR template.
-- El validador del workspace pasa localmente. Si falla, los problemas concretos ya aparecen en las otras dimensiones.
+- El validador pasa. Se corre el `validate.mjs` **de la plantilla** sobre el workspace, nunca el del workspace auditado: la auditoría no ejecuta código ajeno. Con `--no-exec`, o si no se encuentra la plantilla, no se corre y queda dicho en los hechos del reporte. Si falla, los problemas concretos ya aparecen en las otras dimensiones.
 
 ## Lo que el script no juzga
 
