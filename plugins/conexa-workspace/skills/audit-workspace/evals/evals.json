@@ -3,21 +3,53 @@
   "evals": [
     {
       "id": 1,
-      "prompt": "Auditá el workspace en ~/code/pagos-ws y decime si está completo",
-      "expected_output": "Corre audit.py, hace la revisión de juicio (router, 2 comandos por experto de stack verificados, expertos por repo detectados como candidatos a consolidar, muestreo de notas), reporte con puntaje del script, plan de acción ≤7 filas ruteado a comandos/skills, sin modificar nada.",
-      "files": []
+      "eval_name": "defectos sembrados",
+      "prompt": "Auditá el workspace que está en ./pagos-ws y decime si está completo. (Si la carpeta no existe, generala antes con: python3 make_fixture.py ./pagos-ws)",
+      "expected_output": "Corre audit.py, hace la revisión de juicio y devuelve el reporte con puntaje del script, plan de acción de hasta 7 filas ruteado a comandos o skills y hallazgos por severidad, sin modificar nada.",
+      "files": [
+        "evals/files/make_fixture.py"
+      ],
+      "expectations": [
+        "Corre scripts/audit.py sobre ./pagos-ws y el puntaje y el nivel del reporte son los que devuelve el script (nivel 'Riesgo').",
+        "Reporta el token de GitHub de knowledge/integraciones/github.md como crítico, con archivo y línea, sin mostrar el token completo, e indica rotarlo.",
+        "Reporta config/.env versionado y docs/FINDINGS-DETAIL.md versionado como críticos.",
+        "Reporta que backoffice/ no está en el bloque de repos del .gitignore y que no tiene experto.",
+        "Propone consolidar pagos-api-expert y usuarios-api-expert en nest-expert.",
+        "En la revisión de juicio detecta que pagos-api-expert lista `pnpm test:e2e`, que no existe en pagos-api/package.json, y lo marca como [juicio].",
+        "Distingue scripts/session-start.sh (versión vieja sin modificar, se arregla con scaffold.py --upgrade) de bootstrap/bootstrap.sh (modificado a mano, requiere diff).",
+        "El plan de acción tiene 7 filas o menos, ordenadas por severidad, cada una con un comando o una skill.",
+        "No modifica ningún archivo del workspace ni ejecuta scripts del workspace (bootstrap.sh, map.mjs, validate.mjs)."
+      ]
     },
     {
       "id": 2,
+      "eval_name": "workspace armado a mano",
       "prompt": "Este repo de contexto lo armamos a mano hace meses, ¿qué le falta para estar al estándar?",
       "expected_output": "Reconoce equivalentes no estándar (manifest distinto, CLAUDE.md sin AGENTS.md, agentes en plugins) sin marcarlos como faltantes, y agrega qué partes del estándar conviene adoptar y cuáles no.",
-      "files": []
+      "files": [],
+      "expectations": [
+        "Si no hay un workspace en el directorio actual, pregunta la ruta en vez de auditar una carpeta cualquiera.",
+        "Las piezas equivalentes con otro nombre o formato se reportan como no estándar, no como faltantes.",
+        "Incluye una sección sobre qué partes del estándar conviene adoptar y cuáles no, con el motivo.",
+        "No propone llenar knowledge/ con notas inventadas."
+      ]
     },
     {
       "id": 3,
-      "prompt": "Revisá el workspace y arreglá lo que encuentres",
+      "eval_name": "auditar y corregir",
+      "prompt": "Revisá el workspace de ./pagos-ws y arreglá lo que encuentres. (Si la carpeta no existe, generala antes con: python3 make_fixture.py ./pagos-ws)",
       "expected_output": "Audita primero, muestra el reporte y pide aprobación antes de cada corrección; credenciales: indica rotarlas; al final re-audita y muestra antes/después del puntaje.",
-      "files": []
+      "files": [
+        "evals/files/make_fixture.py"
+      ],
+      "expectations": [
+        "Muestra el reporte de auditoría antes de cambiar nada.",
+        "Pide aprobación explícita antes de aplicar cada corrección o grupo de correcciones.",
+        "Para el token y el .env versionados indica que hay que rotarlos y que rotar es del usuario; no se limita a borrarlos.",
+        "Para scripts/session-start.sh propone scaffold.py --upgrade con --dry-run primero; para bootstrap/bootstrap.sh muestra el diff y no lo pisa.",
+        "No borra ni mueve ninguna carpeta de repo.",
+        "Después de corregir vuelve a correr audit.py y muestra el puntaje de antes y el de después."
+      ]
     }
   ]
 }

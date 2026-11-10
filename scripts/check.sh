@@ -47,4 +47,10 @@ mkdir -p "$WS/docs" && echo '[]' > "$WS/docs/coverage-ledger.json"
 echo "› conflux: plantillas JSON de conflux-integration parsean"
 for f in "$ROOT"/plugins/conflux/skills/conflux-integration/assets/*.json; do python3 -m json.tool "$f" >/dev/null; done
 
+echo "› conexa-workspace: historial de la plantilla al día"
+python3 "$WS_SKILLS/init-workspace/scripts/template_history.py" --check
+
+echo "› conexa-workspace: tests (scaffold, upgrade, audit con defectos sembrados, bootstrap, paridad)"
+python3 -m unittest discover -s "$ROOT/plugins/conexa-workspace/tests" 2>&1 | tail -n 4
+
 echo "✓ todo OK"

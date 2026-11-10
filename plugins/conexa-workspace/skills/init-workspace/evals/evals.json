@@ -3,21 +3,60 @@
   "evals": [
     {
       "id": 1,
+      "eval_name": "workspace nuevo con repos",
       "prompt": "Armame un workspace en ~/code/pagos-ws para el proyecto de pagos, con estos repos: git@github.com:acme/Pagos.Backend.git y git@github.com:acme/Pagos.Frontend.git",
       "expected_output": "Scaffold completo, manifest con 2 repos, bootstrap corrido con dry-run previo y confirmación, mapa generado, un experto por stack (nest-expert / react-expert u otros según lo detectado, no uno por repo) con comandos verificados, fila en AGENTS.md, validador OK, sin commit sin aprobación.",
-      "files": []
+      "files": [],
+      "expectations": [
+        "Corre scaffold.py con los dos repos y queda bootstrap/repos.tsv con 2 entradas y bootstrap/template.lock.json creado.",
+        "Muestra `bootstrap.sh --dry-run` y pide confirmación antes de clonar.",
+        "Si un clon falla, sigue con el resto y lo deja anotado en el reporte, sin reintentar en loop.",
+        "Los expertos son por stack (<stack>-expert), no uno por repo, y cada comando que listan existe en un manifest o en el CI del repo, o va marcado [a confirmar].",
+        "No escribe nada dentro de los repos de trabajo.",
+        "Corre validate.mjs y no commitea sin aprobación explícita; nunca usa `git add -A`.",
+        "El reporte final sigue el formato de la skill, incluida la línea de Seguridad."
+      ]
     },
     {
       "id": 2,
+      "eval_name": "workspace sin repos",
       "prompt": "Quiero una carpeta raíz para agentes en ./ws, todavía no tengo los repos",
       "expected_output": "Scaffold sin repos, tabla de AGENTS.md con la fila de 'sin repos todavía', sin expertos de stack, indicación de /agregar-repo.",
-      "files": []
+      "files": [],
+      "expectations": [
+        "Pregunta solo lo que falta (al menos la descripción en una línea), en una sola tanda.",
+        "La tabla de AGENTS.md queda con la fila de 'sin repos todavía'.",
+        "No crea ningún <stack>-expert ni notas de knowledge/ inventadas.",
+        "Indica /agregar-repo como siguiente paso."
+      ]
     },
     {
       "id": 3,
+      "eval_name": "adaptar existente",
       "prompt": "Ya tengo ~/work/cliente con un CLAUDE.md y los repos clonados adentro; sumale la estructura de workspace sin romper nada",
       "expected_output": "Modo adaptar: inventario, carpetas con .git registradas en el manifest con su origin, CLAUDE.md existente no pisado sino propuesta de mover contenido a AGENTS.md con diff, .gitignore fusionado con el bloque de repos.",
-      "files": []
+      "files": [],
+      "expectations": [
+        "Corre scaffold.py con --dry-run antes de escribir.",
+        "No pisa el CLAUDE.md existente: propone con diff mover lo agnóstico a AGENTS.md.",
+        "Registra en el manifest las carpetas con .git usando su origin y su nombre de carpeta actual.",
+        "El .gitignore queda con el bloque de repos entre sus marcadores, sin perder las entradas previas.",
+        "Si alguna carpeta de repo estaba versionada en la raíz, lo avisa y deja la decisión al usuario."
+      ]
+    },
+    {
+      "id": 4,
+      "eval_name": "actualizar a la plantilla nueva",
+      "prompt": "El workspace de ./pagos-ws lo generamos hace unos meses con esta skill. Actualizalo a la versión nueva de la plantilla. (Si la carpeta no existe, generala antes con el make_fixture.py de audit-workspace: python3 <audit-workspace>/evals/files/make_fixture.py ./pagos-ws)",
+      "expected_output": "Modo actualizar: scaffold.py --upgrade con --dry-run primero, actualiza lo que nadie modificó, no toca lo editado a mano y propone la fusión con diff.",
+      "files": [],
+      "expectations": [
+        "Usa `scaffold.py --target ./pagos-ws --upgrade`, con `--dry-run` primero, y no el modo crear ni el modo adaptar.",
+        "scripts/session-start.sh queda actualizado a la versión de la plantilla.",
+        "bootstrap/bootstrap.sh (modificado a mano) no se pisa: muestra el diff y pide aprobación para fusionar.",
+        "AGENTS.md, README.md, .gitignore y knowledge/ no cambian por el upgrade.",
+        "No commitea sin aprobación y agrega los archivos por nombre, incluido bootstrap/template.lock.json."
+      ]
     }
   ]
 }
