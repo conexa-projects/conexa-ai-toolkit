@@ -1,0 +1,74 @@
+{
+  ".claude/agents/code-reviewer.md": [
+    "055b381a2ffc8b8b5c1394d69f212b8bee27567a9db72bebc5e812a59e56649e"
+  ],
+  ".claude/agents/explorer.md": [
+    "e98b99a9b077f876c3cacf3d601fd3e1e01e9d9a5c753ebc04818676e61ac241"
+  ],
+  ".claude/agents/security-reviewer.md": [
+    "c46fa628557868ba9c0b1e06a988557cb63d898be9b93a19895461554bfa127e",
+    "fa83cb4be920f28a8805fe4d4515fa9df91efdaed390a2cbb3a6f60f83872796"
+  ],
+  ".claude/settings.json": [
+    "6619f0f83614fc8a1607884c86cb2d0c61a89e247bb37c7381835c9656116c17",
+    "7916892d59b73314de13d21bc1cfe893fa7e93dad9e1e0ad270160a05ec68e75"
+  ],
+  ".claude/skills/agregar-repo/SKILL.md": [
+    "5258c7f688f3d1433c50fe5b25d9c327d1b64d35c076f6f0a7d4a7600be047d1",
+    "9e4e9b820786d0f3e60de4afd22e4d2c7482e36ddb5a79db0d2734278cd2669e"
+  ],
+  ".claude/skills/capturar/SKILL.md": [
+    "253097f5c25548b514b410444a028c5ad9477241edbddfc5fd13ff3e06c06bce"
+  ],
+  ".claude/skills/quitar-repo/SKILL.md": [
+    "c439a758cbb618ca1e76563aa97ba13d02493a2554c0f01ca163a91be23db4bf"
+  ],
+  ".github/pull_request_template.md": [
+    "eb799b14a879edd0419ce650a772438449806f5e3aac5a9d645e235ad05c55c2",
+    "f505920f0ed9a75758411e601c3f139f354f4de1482e807eb994cea7e1c7252f"
+  ],
+  ".github/workflows/validate.yml": [
+    "aa23aaa9902a38cd0a465bc9d96cc1801d64b683ee56f1208f806b5515880169"
+  ],
+  "CLAUDE.md": [
+    "6cf2d8aab9a22872bc54ba5d03b7d776ab8010cc2c2e20c020cb15ab957ba1ac",
+    "9942232d7ca9958cd9040669664f6af589644ab20d99d5797ff9131f499f82fd",
+    "c406cd2848f2dda9b9b0f2ab7f784e5924032962bc8a60388e625edcc96fabdd"
+  ],
+  "CONTRIBUTING.md": [
+    "be5e797335d2f20f2c2c8c7ee0bd572ad30cc22d3d71cc5bf1fe085a709d8f1d",
+    "f384ee1a223d7b02513c20762054da5c09b81a467befbf41b9127a97d0820ce2"
+  ],
+  "MAINTENANCE.md": [
+    "b7400f8585bb1eee69410a814286cc706c48c382b35179a37fbd1dea2c207637",
+    "f99c873fd5ce5e25b96d56ebfcb5e0cd61ecfe15af69bada59015f71209e0ae9",
+    "fb710e18112dda1c36a61ae2e63dc76556e9c0d7fa4d2e6c52f9fd5110f3c76e"
+  ],
+  "bootstrap/bootstrap.sh": [
+    "15a65669483be0b18eab10f272df64ba138d3981ca4b3d36977b17e919926353",
+    "ffed5cb5d6ef3d868c5d0843d3e3a5b949db24d5db2fa517366805bdbcae3f18"
+  ],
+  "knowledge/_template.md": [
+    "0364497920076457091b41092f55d4ab9aad5c36da1011387fc19f87e49d6f49"
+  ],
+  "knowledge/templates/repo-expert.md": [
+    "f4ff6626f846333f7775621d23b25d1d3c1fb838be69a5d0938b550a1d129c52"
+  ],
+  "knowledge/templates/stack-expert.md": [
+    "bb6b0fb8408bee21e5bf6a7ff9007156618d0b086c2e98fe7f0cb273d9032aa0"
+  ],
+  "scripts/graphify-setup.sh": [
+    "7e2f27a56fc8d7222cd28c19e0bebbbf1720e5a9af9e08267c7c20b5c783adea"
+  ],
+  "scripts/map.mjs": [
+    "331d872e4d0303cad4675ed9e8014602ee85f411d41a617d74cd80b73499645b"
+  ],
+  "scripts/session-start.sh": [
+    "23b90e4eb9c0240dcd629eed6eba9c8dd333e221fbf60f46f170b6c28ec9e918"
+  ],
+  "scripts/validate.mjs": [
+    "15a9120faab0d3d91acac02cc46cf74ca132dcf694d0ba8ca0e241fce755e5ad",
+    "8512cd7ea96a920982e1fbc4a7c34df144dce20f733a7a124707c6a4dc92d2a2",
+    "b059d85445caed7cd4aa3e11f1bece602039ad8c2995d728482443f1543e76b9"
+  ]
+}

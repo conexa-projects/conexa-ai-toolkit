@@ -1,6 +1,6 @@
 ---
 name: init-workspace
-description: "Crea (o adapta) un repositorio raíz de workspace para trabajar con agentes sobre varios repos a la vez: AGENTS.md como fuente de verdad, CLAUDE.md que lo importa, los repos de trabajo como carpetas hermanas ignoradas por git y clonadas por un bootstrap, subagentes genéricos (code-reviewer, security-reviewer, explorer) más un experto por stack (un solo nest-expert aunque haya varios backends Nest), un mapa de contexto generado que acelera la lectura, y una memoria versionada (knowledge/ + log de decisiones). Usar cuando se pida iniciar, armar, crear, scaffoldear o bootstrapear un workspace, repo raíz, repo de contexto, meta-repo o 'carpeta que agrupe repos' para Claude Code/Codex, con o sin repos existentes; también para sumar esa estructura a un workspace que ya existe. NO crea repos remotos ni pushea."
+description: "Crea (o adapta) un repositorio raíz de workspace para trabajar con agentes sobre varios repos a la vez: AGENTS.md como fuente de verdad, CLAUDE.md que lo importa, los repos de trabajo como carpetas hermanas ignoradas por git y clonadas por un bootstrap, subagentes genéricos (code-reviewer, security-reviewer, explorer) más un experto por stack (un solo nest-expert aunque haya varios backends Nest), un mapa de contexto generado que acelera la lectura, y una memoria versionada (knowledge/ + log de decisiones). Usar cuando se pida iniciar, armar, crear, scaffoldear o bootstrapear un workspace, repo raíz, repo de contexto, meta-repo o 'carpeta que agrupe repos' para Claude Code/Codex, con o sin repos existentes; también para sumar esa estructura a un workspace que ya existe, o para actualizar un workspace ya generado a la versión actual de la plantilla. NO crea repos remotos ni pushea."
 ---
 
 # init-workspace
@@ -31,7 +31,8 @@ Qué es cada pieza y por qué existe: `references/estructura.md`. Leelo antes de
 
 1. Resolvé la carpeta destino. Si el usuario no la dio, preguntala.
 2. Si no existe o está vacía → **modo nuevo**.
-3. Si ya tiene archivos → **modo adaptar**: listá qué hay (`AGENTS.md`, `CLAUDE.md`, `.claude/`, `.gitignore`, carpetas con `.git` adentro). Las carpetas con `.git` son candidatas a repos de trabajo: ofrecé registrarlas en el manifest con su `origin`. Seguí `references/estructura.md` → "Adaptar un workspace existente".
+3. Si ya es un workspace generado por esta skill y piden actualizarlo, ponerlo al día o traer la versión nueva de la plantilla → **modo actualizar**: andá directo a la sección "Modo actualizar".
+4. Si ya tiene archivos → **modo adaptar**: listá qué hay (`AGENTS.md`, `CLAUDE.md`, `.claude/`, `.gitignore`, carpetas con `.git` adentro). Las carpetas con `.git` son candidatas a repos de trabajo: ofrecé registrarlas en el manifest con su `origin`. Seguí `references/estructura.md` → "Adaptar un workspace existente".
 
 ## Paso 2 — Entrevista (una sola tanda)
 
@@ -59,6 +60,8 @@ python3 <dir-de-esta-skill>/scripts/scaffold.py \
 ```
 
 Corré primero con `--dry-run` en modo adaptar. El script imprime `creado` / `existe (no se tocó)` por archivo. Lo que quedó en "existe" lo fusionás a mano en el Paso 7.
+
+El scaffold deja un sello en `bootstrap/template.lock.json` (versionado): la versión de la plantilla y el hash de cada archivo que generó. Es lo que permite actualizar después sin pisar lo que el equipo modificó.
 
 ## Paso 4 — Repos
 
@@ -99,6 +102,28 @@ Los repos que no se pudieron clonar quedan en la tabla con `[no clonado]` y fuer
 3. Fijate si la skill `security-audit` aparece entre las skills disponibles de la sesión. Si no, anotá en el reporte que falta instalar el plugin `conexa-guardrails`: sin él, `security-reviewer` recomienda una skill que no existe.
 4. Preguntá antes del primer commit. Nunca `git add -A`: agregá por nombre, y verificá con `git status` que ninguna carpeta de repo quedó adentro.
 
+## Modo actualizar
+
+Para un workspace que ya existe y quedó con una versión vieja de la plantilla (lo marca `audit-workspace`, o lo pide el usuario).
+
+```bash
+python3 <dir-de-esta-skill>/scripts/scaffold.py --target <destino> --upgrade --dry-run   # mostrale esto
+python3 <dir-de-esta-skill>/scripts/scaffold.py --target <destino> --upgrade
+```
+
+Por cada archivo de la plantilla:
+
+| Salida | Qué pasó |
+|---|---|
+| `creado` | No existía (ej. una skill nueva del workspace) |
+| `actualizado` | Era una versión vieja **sin modificar**: se pisó con la actual. Lo sabe por el sello o, si el workspace no tiene sello, porque coincide con una versión publicada |
+| `modificado a mano (no se tocó)` | Alguien lo editó. Mostrá el `diff` contra la plantilla y proponé la fusión; se aplica con aprobación |
+| `omitido` | Falta un dato para generarlo: pasá `--name` y `--description` |
+
+`AGENTS.md`, `README.md`, `.gitignore`, el manifest y `knowledge/` son del equipo: `--upgrade` nunca los toca. Si la versión nueva les suma algo (un bloque del `.gitignore`, una sección de `AGENTS.md`), lo detecta `audit-workspace` y se fusiona como en "Adaptar un workspace existente".
+
+Después: `node scripts/validate.mjs`, y commit con aprobación, agregando por nombre los archivos actualizados y `bootstrap/template.lock.json`. Reportá creados, actualizados y los modificados que quedaron pendientes de fusión.
+
 ## Formato del reporte final
 
 ```
@@ -112,7 +137,7 @@ Grafo: construido (<n> nodos por repo) | no instalado
 Validador: OK | <problemas pendientes>
 [a confirmar]: <lo que no se pudo verificar, por repo>
 
-Siguiente paso: abrir Claude Code en <destino>. Para sumar un repo: /agregar-repo <url>
+Siguiente paso: abrir Claude Code en <destino>. Para sumar un repo: /agregar-repo <url> · para darlo de baja o renombrarlo: /quitar-repo <carpeta>
 ```
 
 ## Referencias
