@@ -10,7 +10,7 @@ Todo lo de arriba aplica. Esto agrega solo lo que es propio de Claude Code.
   el trabajo sobre un repo va al experto de su stack (`<stack>-expert`, columna Experto de la tabla); una revisión, al `code-reviewer`.
   Pasale al subagente la consigna afilada: repo, rama y síntoma.
 - **Skills del workspace:** `/agregar-repo <url>` suma un repo (manifest, clon, mapa, experto de su stack);
-  `/capturar` vuelca lo aprendido en la sesión a `knowledge/`.
+  `/quitar-repo <carpeta>` lo da de baja o lo renombra; `/capturar` vuelca lo aprendido en la sesión a `knowledge/`.
 - **Hook de inicio:** `scripts/session-start.sh` refresca el mapa de `.context/` si algún repo cambió
   y avisa qué falta clonar.
 - **Permisos** en `.claude/settings.json`. Lo personal va en `.claude/settings.local.json` (ignorado).

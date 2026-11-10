@@ -12,9 +12,11 @@
 #   bash bootstrap/bootstrap.sh --link ~/code            # enlaza clones que ya tengas ahí (repetible)
 #   bash bootstrap/bootstrap.sh --update                 # fetch + pull --ff-only de los repos limpios
 #   bash bootstrap/bootstrap.sh --add <url> [--dir X] [--branch Y]   # suma un repo al manifest
+#   bash bootstrap/bootstrap.sh --remove <carpeta>       # saca un repo del manifest (no borra el clon)
+#   bash bootstrap/bootstrap.sh --rename <carpeta> <nueva>   # renombra la carpeta de un repo
 #   bash bootstrap/bootstrap.sh --dry-run                # muestra qué haría, sin tocar nada
 #
-# Compatible con bash 3.2 (macOS) y Git Bash. Nunca hace reset, clean ni push.
+# Compatible con bash 3.2 (macOS) y Git Bash. Nunca hace reset, clean ni push, ni borra un clon.
 set -uo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -27,6 +29,7 @@ END_MARK="# <<< repos <<<"
 USE_HTTPS=0; DRY=0; UPDATE=0
 LINK_DIRS=()
 ADD_URL=""; ADD_DIR=""; ADD_BRANCH=""
+RM_DIR=""; MV_OLD=""; MV_NEW=""
 
 usage() { awk 'NR>=3 && /^#/ {sub(/^# ?/,""); print; next} NR>=3 {exit}' "${BASH_SOURCE[0]}"; }
 
@@ -39,6 +42,9 @@ while [ $# -gt 0 ]; do
     --add)     ADD_URL="${2:?--add necesita una URL}"; shift 2 ;;
     --dir)     ADD_DIR="${2:?--dir necesita un nombre}"; shift 2 ;;
     --branch)  ADD_BRANCH="${2:?--branch necesita una rama}"; shift 2 ;;
+    --remove)  RM_DIR="${2:?--remove necesita una carpeta}"; RM_DIR="${RM_DIR%/}"; shift 2 ;;
+    --rename)  MV_OLD="${2:?--rename necesita <carpeta> <nueva>}"; MV_NEW="${3:?--rename necesita <carpeta> <nueva>}"
+               MV_OLD="${MV_OLD%/}"; MV_NEW="${MV_NEW%/}"; shift 3 ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Opción desconocida: $1" >&2; usage >&2; exit 2 ;;
   esac
@@ -56,16 +62,22 @@ to_https() { printf '%s' "$1" | sed -E 's#^git@([^:]+):#https://\1/#; s#^ssh://g
 # Lista "carpeta<TAB>url<TAB>rama" del manifest, sin comentarios, líneas vacías ni \r.
 entries() { tr -d '\r' < "$MANIFEST" | awk -F'\t' '!/^[[:space:]]*#/ && NF>=2 && $1!="" {print $1"\t"$2"\t"$3}'; }
 
+# Valida un nombre de carpeta de repo: ni reservado ni con caracteres raros.
+check_dir_name() {
+  case "$1" in
+    bootstrap|scripts|knowledge|drafts|.claude|.github|.context|node_modules|"")
+      echo "✗ '$1' es una carpeta reservada del workspace; elegí otro nombre" >&2; exit 2 ;;
+  esac
+  printf '%s' "$1" | grep -Eq '^[A-Za-z0-9][A-Za-z0-9._-]*$' || { echo "✗ nombre de carpeta inválido: $1" >&2; exit 2; }
+}
+in_manifest() { entries | awk -F'\t' -v d="$1" '$1==d {f=1} END {exit !f}'; }
+
 # ── --add: sumar un repo al manifest ───────────────────────────
 if [ -n "$ADD_URL" ]; then
   if [ -z "$ADD_DIR" ]; then
     ADD_DIR="$(basename "${ADD_URL%/}")"; ADD_DIR="${ADD_DIR##*:}"; ADD_DIR="${ADD_DIR%.git}"
   fi
-  case "$ADD_DIR" in
-    bootstrap|scripts|knowledge|drafts|.claude|.github|.context|node_modules|"")
-      echo "✗ '$ADD_DIR' es una carpeta reservada del workspace; usá --dir" >&2; exit 2 ;;
-  esac
-  printf '%s' "$ADD_DIR" | grep -Eq '^[A-Za-z0-9][A-Za-z0-9._-]*$' || { echo "✗ nombre de carpeta inválido: $ADD_DIR" >&2; exit 2; }
+  check_dir_name "$ADD_DIR"
   new_norm="$(norm_url "$ADD_URL")"
   while IFS="$(printf '\t')" read -r d u _b; do
     [ "$d" = "$ADD_DIR" ] && { echo "✗ ya hay un repo con la carpeta '$d' en el manifest" >&2; exit 2; }
@@ -118,6 +130,41 @@ sync_gitignore() {
   ' "$GITIGNORE" > "$tmp"
   if cmp -s "$tmp" "$GITIGNORE"; then rm -f "$tmp"; else mv "$tmp" "$GITIGNORE"; echo "· .gitignore: bloque de repos actualizado"; fi
 }
+
+# ── --remove / --rename: editan el manifest y no clonan nada ───
+if [ -n "$RM_DIR" ]; then
+  in_manifest "$RM_DIR" || { echo "✗ '$RM_DIR' no está en el manifest" >&2; exit 2; }
+  if [ "$DRY" -eq 1 ]; then
+    echo "· (dry-run) sacaría del manifest: $RM_DIR"
+  else
+    tmp="$(mktemp)"
+    awk -F'\t' -v d="$RM_DIR" '/^[[:space:]]*#/ || $1!=d' "$MANIFEST" > "$tmp" && cat "$tmp" > "$MANIFEST"; rm -f "$tmp"
+    echo "· sacado del manifest: $RM_DIR"
+    if [ -L "$ROOT/$RM_DIR" ]; then
+      rm "$ROOT/$RM_DIR" && echo "· $RM_DIR era un enlace: se quitó (el clon original no se toca)"
+    elif [ -e "$ROOT/$RM_DIR" ]; then
+      echo "⚠ la carpeta $RM_DIR/ sigue en disco y ya no está ignorada por git: borrala o movela fuera del workspace (este script nunca borra un clon)"
+    fi
+  fi
+fi
+if [ -n "$MV_OLD" ]; then
+  in_manifest "$MV_OLD" || { echo "✗ '$MV_OLD' no está en el manifest" >&2; exit 2; }
+  check_dir_name "$MV_NEW"
+  in_manifest "$MV_NEW" && { echo "✗ ya hay un repo con la carpeta '$MV_NEW' en el manifest" >&2; exit 2; }
+  if [ -e "$ROOT/$MV_NEW" ] || [ -L "$ROOT/$MV_NEW" ]; then echo "✗ ya existe $MV_NEW/ en la raíz" >&2; exit 2; fi
+  if [ "$DRY" -eq 1 ]; then
+    echo "· (dry-run) renombraría $MV_OLD → $MV_NEW en el manifest y en disco"
+  else
+    tmp="$(mktemp)"
+    awk -F'\t' -v OFS='\t' -v o="$MV_OLD" -v n="$MV_NEW" '!/^[[:space:]]*#/ && $1==o {$1=n} {print}' "$MANIFEST" > "$tmp" && cat "$tmp" > "$MANIFEST"; rm -f "$tmp"
+    if [ -e "$ROOT/$MV_OLD" ] || [ -L "$ROOT/$MV_OLD" ]; then mv "$ROOT/$MV_OLD" "$ROOT/$MV_NEW"; fi
+    echo "· renombrado: $MV_OLD → $MV_NEW"
+  fi
+fi
+if [ -n "$RM_DIR$MV_OLD" ]; then
+  [ "$DRY" -eq 1 ] || sync_gitignore
+  exit 0
+fi
 
 cloned=0; linked=0; present=0; updated=0; failed=0; failed_list=""
 
