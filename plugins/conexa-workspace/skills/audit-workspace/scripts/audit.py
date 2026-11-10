@@ -6,17 +6,19 @@ Funciona con workspaces generados por init-workspace y también con estructuras 
 siguen el estándar: en ese caso reporta qué pieza equivalente encontró o no encontró.
 
 Uso:
-  audit.py [RAIZ] [--json] [--template DIR] [--out ARCHIVO]
+  audit.py [RAIZ] [--json] [--template DIR] [--out ARCHIVO] [--no-exec]
     RAIZ         raíz del workspace (default: directorio actual)
     --json       salida JSON en vez de markdown
     --template   plantilla de init-workspace para detectar scripts desactualizados
                  (default: se busca una skill init-workspace hermana de esta)
     --out        además de imprimir, escribe el reporte en ese archivo
+    --no-exec    no corre el validador (por defecto corre el de la plantilla, nunca el del workspace)
 """
 import argparse
 import datetime
 import hashlib
 import json
+import math
 import os
 import re
 import subprocess
@@ -34,12 +36,30 @@ DIMS = [
     ("ci", "CI"),
 ]
 SEV = {"critico": ("🔴", 15), "importante": ("🟠", 5), "mejora": ("🟡", 1)}
+DIM_CAP = 30  # lo máximo que resta una dimensión: el volumen de repos no hunde el puntaje
+# Plantilla de init-workspace. RENAMES y USER_OWNED: mantener igual que init-workspace/scripts/scaffold.py.
+RENAMES = {"dot-claude": ".claude", "dot-github": ".github", "dot-gitignore": ".gitignore"}
+USER_OWNED = {"AGENTS.md", "README.md", ".gitignore", "bootstrap/repos.tsv", "knowledge/README.md",
+              "knowledge/decisiones.md", "knowledge/procesos/idioma.md", "drafts/.gitkeep"}
+TEMPLATE_SCRIPTS = {"bootstrap/bootstrap.sh", "scripts/map.mjs", "scripts/validate.mjs", "scripts/session-start.sh", "scripts/graphify-setup.sh"}
+LOCK = "bootstrap/template.lock.json"
 BEGIN_REPOS_GI = "# >>> repos (bootstrap/bootstrap.sh mantiene este bloque; no editar a mano) >>>"
 END_REPOS_GI = "# <<< repos <<<"
 GENERIC_AGENTS = ["code-reviewer", "security-reviewer", "explorer"]
-WS_SKILLS = ["agregar-repo", "capturar"]
+WS_SKILLS = ["agregar-repo", "quitar-repo", "capturar"]
 SECRET_PATH = [r"\.pem$", r"\.key$", r"\.p12$", r"\.pfx$", r"(^|/)client_secret[^/]*\.json$",
                r"(^|/)\.env(\.(?!example$)[^/]+)?$", r"(^|/)secrets\.json$", r"(^|/)id_(rsa|ed25519|ecdsa)$"]
+# Secretos por contenido: pocos patrones de alta señal (tipo, regex). Mantener igual que scripts/validate.mjs de la plantilla.
+SECRET_CONTENT = [
+    ("clave privada", re.compile(r"-----BEGIN (?:[A-Z0-9]+ )*PRIVATE KEY-----")),
+    ("token de GitHub", re.compile(r"\b(?:gh[pousr]_[A-Za-z0-9]{36,}|github_pat_[A-Za-z0-9_]{22,})")),
+    ("access key de AWS", re.compile(r"\b(?:AKIA|ASIA)[0-9A-Z]{16}\b")),
+    ("token de Slack", re.compile(r"\bxox[abeprs]-[A-Za-z0-9-]{10,}")),
+    ("API key de Anthropic", re.compile(r"\bsk-ant-[A-Za-z0-9_-]{20,}")),
+    ("API key de Google", re.compile(r"\bAIza[0-9A-Za-z_-]{35}\b")),
+]
+# Entradas de allow que parecen de lectura pero habilitan escrituras.
+WRITE_VIA_READ = {"Bash(find:*)": "`find -delete` y `find -exec`", "Bash(git branch:*)": "`git branch -D`"}
 AUDIT_OUTPUT = [r"(^|/)security-audit(-skill)?/", r"(^|/)coverage-ledger\.json$", r"(^|/)NEEDS-VALIDATION\.md$", r"(^|/)FINDINGS-DETAIL\.md$"]
 # Reglas mínimas que tiene que tener security-reviewer: (patrón, severidad, título, detalle, recomendación)
 REVIEWER_RULES = [
@@ -71,7 +91,8 @@ def sh(cwd, *args):
 
 
 def git(cwd, *args):
-    return sh(cwd, "git", *args)
+    # fsmonitor apagado: evita que la config local de un repo ajeno lance un proceso durante la auditoría
+    return sh(cwd, "git", "-c", "core.fsmonitor=false", *args)
 
 
 def read(path, limit=512 * 1024):
@@ -88,16 +109,20 @@ def frontmatter(text):
     m = FRONTMATTER.match(text)
     if not m:
         return None
-    fields = {}
+    # Subconjunto de YAML: `clave: valor`, escalares de bloque (`>`, `>-`, `|`) y líneas de continuación indentadas.
+    fields, key = {}, None
     for line in m.group(1).splitlines():
         pm = re.match(r"^([\w-]+):\s*(.*)$", line)
         if pm:
-            fields[pm.group(1)] = pm.group(2).strip().strip("'\"")
-    return fields
+            key, val = pm.group(1), pm.group(2).strip()
+            fields[key] = "" if re.match(r"^[>|][+-]?\d*$", val) else val
+        elif key and line[:1] in (" ", "\t") and line.strip():
+            fields[key] = (fields[key] + " " + line.strip()).strip()
+    return {k: v.strip("'\"") for k, v in fields.items()}
 
 
 FRAMEWORK_KEYS = ["NestJS", "Next.js", "Nuxt", "React Native", "Expo", "Angular", "Vue", "Svelte", "Astro", "Electron",
-                  "React", "Express", "Fastify", ".NET", "Python", "Go", "Java", "Terraform"]
+                  "React", "Express", "Fastify", ".NET", "Python", "Go", "Java", "Terraform", "Helm"]
 
 
 def stack_key(stack):
@@ -109,7 +134,9 @@ def stack_key(stack):
 
 
 def slug(key):
-    return {"NestJS": "nest", "Next.js": "next", "React Native": "react-native", ".NET": "dotnet"}.get(key, key.lower())
+    """Clave de experto de un framework, según references/expertos-por-stack.md de init-workspace."""
+    return {"NestJS": "nest", "Next.js": "next", "React Native": "react-native", "Expo": "react-native", ".NET": "dotnet",
+            "Express": "node-api", "Fastify": "node-api", "Terraform": "infra", "Helm": "infra"}.get(key, key.lower())
 
 
 def norm_url(url):
@@ -147,9 +174,10 @@ def sha(path):
 # ── auditoría ────────────────────────────────────────────────
 
 class Audit:
-    def __init__(self, root, template):
+    def __init__(self, root, template, no_exec=False):
         self.root = os.path.abspath(root)
         self.template = template
+        self.no_exec = no_exec
         self.findings = []
         self.passed = {d: 0 for d, _ in DIMS}
         self.facts = {}
@@ -389,12 +417,12 @@ class Audit:
         for rd, cover in covered_by.items():
             key = stack_key(rows.get(rd, {}).get("stack", "") or self.map_stack(rd))
             if key and len(cover) == 1:
-                by_stack.setdefault(key, set()).add(cover[0])
+                by_stack.setdefault(slug(key), set()).add(cover[0])
         for key, ex in sorted(by_stack.items()):
             if len(ex) > 1:
                 self.add(d, "mejora", f"{len(ex)} expertos para el stack {key}: {', '.join(f'`{e}`' for e in sorted(ex))}",
                          "El estándar es un experto por stack: el conocimiento del framework queda repetido y las descriptions se pisan.",
-                         f"Consolidarlos en `{slug(key)}-expert`, con una fila por repo en \"Repos que cubrís\".")
+                         f"Consolidarlos en `{key}-expert`, con una fila por repo en \"Repos que cubrís\".")
 
     def table_rows(self, table):
         """Filas de la tabla de repos de AGENTS.md: carpeta -> {stack, experts}."""
@@ -526,6 +554,15 @@ class Audit:
         d = "seguridad"
         secrets = [f for f in self.tracked if any(re.search(p, f, re.I) for p in SECRET_PATH)]
         self.check(d, not secrets, "critico", "Credenciales versionadas", ", ".join(secrets[:6]), "Sacarlas del índice y **rotarlas**: siguen en la historia.")
+        leaks = []
+        for f in self.tracked:
+            for n, line in enumerate(read(self.p(*f.split("/"))).splitlines(), 1):
+                for kind, pat in SECRET_CONTENT:
+                    m = pat.search(line)
+                    if m and "EXAMPLE" not in m.group(0).upper():
+                        leaks.append(f"{f}:{n} → {kind} (`{m.group(0)[:4]}…`)")
+        self.check(d, not leaks, "critico", f"{len(leaks)} secretos en el contenido de archivos versionados", "; ".join(leaks[:6]),
+                   "Sacarlos del archivo y **rotarlos**: siguen en la historia de git.")
         reports = [f for f in self.tracked if not re.search(r"(^|/)skills/security-audit/", f) and any(re.search(p, f) for p in AUDIT_OUTPUT)]
         self.check(d, not reports, "critico", "Informes de auditoría de seguridad versionados", ", ".join(reports[:6]),
                    "Traen el camino de explotación de código de clientes. `git rm --cached` y evaluar si hay que reescribir la historia.")
@@ -560,9 +597,13 @@ class Audit:
             return
         perms = data.get("permissions", {})
         allow, deny = perms.get("allow", []), perms.get("deny", [])
+        allow = [re.sub(r" \*\)$", ":*)", a) for a in allow if isinstance(a, str)]  # `Bash(x *)` equivale a `Bash(x:*)`
         risky = [a for a in allow if a in ("Bash", "Bash(*)", "Bash(git -C:*)", "Bash(git push:*)", "Bash(rm:*)", "Bash(git reset:*)") or a.startswith("Bash(git push")]
         self.check(d, not risky, "importante", "Permisos amplios en allow", ", ".join(risky),
                    "Habilitan escrituras o pushes sin confirmación. Moverlos a `ask`.")
+        leaky = [f"`{a}` ({why})" for a, why in WRITE_VIA_READ.items() if a in allow]
+        self.check(d, not leaky, "importante", "Permisos de lectura en allow que también habilitan escrituras", ", ".join(leaky),
+                   "Quitarlos (las formas de solo lectura ya corren sin preguntar) o dejar formas puntuales, ej. `Bash(git branch --show-current:*)`.")
         self.check(d, any(".env" in x for x in deny), "importante", "No se deniega leer `.env`", "", "Agregar `Read(**/.env)` y similares a deny.")
         self.check(d, any("push --force" in x or "push -f" in x for x in deny), "mejora", "No se deniega `git push --force`", "", "Agregarlo a deny.")
         abs_hooks = []
@@ -627,16 +668,47 @@ class Audit:
             self.add(d, "mejora", "graphify está instalado pero no hay grafo", "", "`bash scripts/graphify-setup.sh`.")
         # scripts desactualizados respecto de la plantilla
         if self.template:
-            drift = []
-            for rel in ("bootstrap/bootstrap.sh", "scripts/map.mjs", "scripts/validate.mjs", "scripts/session-start.sh", "scripts/graphify-setup.sh"):
-                mine, theirs = sha(self.p(*rel.split("/"))), sha(os.path.join(self.template, *rel.split("/")))
-                if mine and theirs and mine != theirs:
-                    drift.append(rel)
-                elif theirs and not mine and rel.endswith("graphify-setup.sh"):
-                    drift.append(rel + " (falta)")
-            self.facts["plantilla"] = self.template
-            self.check(d, not drift, "mejora", f"{len(drift)} scripts distintos a la plantilla actual", ", ".join(drift),
-                       "Puede ser una personalización o una versión vieja. Comparar con diff antes de actualizar.")
+            self.template_drift(d)
+
+    def template_drift(self, d):
+        """Archivos de la plantilla que quedaron viejos (sin tocar: se actualizan solos) o personalizados."""
+        try:
+            lock = json.loads(read(self.p(*LOCK.split("/"))) or "{}")
+        except ValueError:
+            lock = {}
+        try:
+            history = json.loads(read(os.path.join(self.template, "..", "template-history.json")) or "{}")
+        except ValueError:
+            history = {}
+        locked = lock.get("files", {}) if isinstance(lock, dict) else {}
+        self.facts["plantilla"] = self.template
+        self.facts["sello_de_plantilla"] = (lock.get("template_version") if isinstance(lock, dict) else None) or "sin sello"
+        outdated, custom = [], []
+        for base, dirs, files in os.walk(self.template):
+            dirs.sort()
+            for name in sorted(files):
+                src = os.path.join(base, name)
+                parts = os.path.relpath(src, self.template).replace(os.sep, "/").split("/")
+                if parts[-1].endswith(".tmpl"):
+                    parts[-1] = parts[-1][:-5]
+                rel = "/".join(RENAMES.get(p, p) for p in parts)
+                if rel in USER_OWNED or re.search(r"\{\{[A-Z_]+\}\}", read(src)):
+                    continue
+                mine, theirs = sha(self.p(*rel.split("/"))), sha(src)
+                if not mine:
+                    if rel == "scripts/graphify-setup.sh":
+                        outdated.append(rel + " (falta)")
+                    continue
+                if mine == theirs:
+                    continue
+                if mine == locked.get(rel) or mine in history.get(rel, []):
+                    outdated.append(rel)
+                elif rel in TEMPLATE_SCRIPTS:
+                    custom.append(rel)  # agentes y docs se personalizan por diseño: solo se reportan los scripts
+        self.check(d, not outdated, "mejora", f"{len(outdated)} archivos de una versión vieja de la plantilla, sin modificar",
+                   ", ".join(outdated), "Se actualizan solos: init-workspace en modo actualizar (`scaffold.py --target . --upgrade --dry-run` primero).")
+        self.check(d, not custom, "mejora", f"{len(custom)} scripts modificados respecto de la plantilla", ", ".join(custom),
+                   "Si es una personalización, está bien. Si no, comparar con diff contra la plantilla y fusionar: `--upgrade` no los pisa.")
 
     def ci(self):
         d = "ci"
@@ -646,11 +718,24 @@ class Audit:
         self.check(d, runs, "importante" if self.exists("scripts", "validate.mjs") else "mejora", "El CI no corre el validador",
                    "Un secreto o un repo versionado llega a main sin que nadie lo vea.", "Agregar el workflow de validate de la plantilla.")
         self.check(d, self.exists(".github", "pull_request_template.md"), "mejora", "No hay PR template", "", "Copiarlo de la plantilla.")
-        if self.exists("scripts", "validate.mjs") and self.is_git and sh(self.root, "sh", "-c", "command -v node"):
-            out = subprocess.run(["node", "scripts/validate.mjs"], cwd=self.root, capture_output=True, text=True)
+        # Nunca se ejecuta el validate.mjs del workspace auditado (es código ajeno): se corre la copia de la
+        # plantilla sobre el workspace. Sin plantilla, o con --no-exec, no se ejecuta nada.
+        validator = os.path.join(self.template, "scripts", "validate.mjs") if self.template else None
+        if self.no_exec:
+            self.facts["validador"] = "no ejecutado (--no-exec)"
+        elif not validator or not os.path.exists(validator):
+            self.facts["validador"] = "no ejecutado (no se encontró la plantilla de init-workspace)"
+        elif not self.is_git or not sh(self.root, "sh", "-c", "command -v node"):
+            self.facts["validador"] = "no ejecutado (falta git o Node)"
+        else:
+            try:
+                out = subprocess.run(["node", validator], cwd=self.root, capture_output=True, text=True, timeout=120)
+            except (subprocess.TimeoutExpired, OSError):
+                self.facts["validador"] = "no terminó (timeout)"
+                return
             n = len([l for l in out.stderr.splitlines() if l.strip().startswith("·")])
             self.facts["validador"] = "OK" if out.returncode == 0 else f"{n} problemas"
-            self.check(d, out.returncode == 0, "importante", f"El validador del workspace falla ({n} problemas)",
+            self.check(d, out.returncode == 0, "importante", f"El validador de la plantilla falla sobre este workspace ({n} problemas)",
                        "Los problemas concretos aparecen en las otras dimensiones de este reporte.", "`node scripts/validate.mjs` y corregir.")
 
     def run(self):
@@ -666,9 +751,21 @@ class Audit:
 
     # ── puntaje y salida ──
 
+    def penalties(self):
+        """Resta por dimensión. Los hallazgos del mismo tipo (mismo chequeo sobre distintos repos, archivos
+        o agentes) se agrupan: el primero resta entero, el segundo y el tercero la mitad, el resto nada.
+        Cada dimensión resta como mucho DIM_CAP."""
+        groups = {}
+        for f in self.findings:
+            kind = re.sub(r"\d+", "#", re.sub(r"`[^`]*`", "`_`", f["title"]))
+            groups[(f["dim"], f["sev"], kind)] = groups.get((f["dim"], f["sev"], kind), 0) + 1
+        raw = {d: 0.0 for d, _ in DIMS}
+        for (dim, sev, _), n in groups.items():
+            raw[dim] += SEV[sev][1] * (1 + 0.5 * min(n - 1, 2))
+        return {d: min(DIM_CAP, int(math.ceil(v))) for d, v in raw.items()}
+
     def score(self):
-        penalty = sum(SEV[f["sev"]][1] for f in self.findings)
-        return max(0, 100 - penalty)
+        return max(0, 100 - sum(self.penalties().values()))
 
     def level(self, s):
         if any(f["sev"] == "critico" for f in self.findings):
@@ -694,7 +791,7 @@ class Audit:
     def to_json(self):
         s = self.score()
         return {"fecha": datetime.date.today().isoformat(), "puntaje": s, "nivel": self.level(s), "hechos": self.facts,
-                "dimensiones": {d: {"estado": self.dim_status(d), "ok": self.passed[d],
+                "dimensiones": {d: {"estado": self.dim_status(d), "ok": self.passed[d], "resta": self.penalties()[d],
                                     "hallazgos": len([f for f in self.findings if f["dim"] == d])} for d, _ in DIMS},
                 "hallazgos": self.findings}
 
@@ -704,10 +801,11 @@ class Audit:
              f"**{s}/100 · {self.level(s)}** · {datetime.date.today().isoformat()}", ""]
         facts = [f"{k.replace('_', ' ')}: {v}" for k, v in self.facts.items() if k not in ("raiz", "plantilla") and v is not None]
         L += ["> " + " · ".join(facts), ""]
-        L += ["| Dimensión | Estado | Chequeos OK | Hallazgos |", "|---|---|---|---|"]
+        L += ["| Dimensión | Estado | Chequeos OK | Hallazgos | Resta |", "|---|---|---|---|---|"]
+        pen = self.penalties()
         for d, name in DIMS:
             n = len([f for f in self.findings if f["dim"] == d])
-            L.append(f"| {name} | {self.dim_status(d)} | {self.passed[d]} | {n} |")
+            L.append(f"| {name} | {self.dim_status(d)} | {self.passed[d]} | {n} | {'−' + str(pen[d]) if pen[d] else '0'} |")
         for sev, label in (("critico", "Críticos"), ("importante", "Importantes"), ("mejora", "Mejoras")):
             fs = [f for f in self.findings if f["sev"] == sev]
             if not fs:
@@ -742,10 +840,11 @@ def main():
     ap.add_argument("--json", action="store_true")
     ap.add_argument("--template")
     ap.add_argument("--out")
+    ap.add_argument("--no-exec", action="store_true")
     args = ap.parse_args()
     if not os.path.isdir(args.root):
         sys.exit(f"✗ no existe {args.root}")
-    audit = Audit(args.root, find_template(args.template)).run()
+    audit = Audit(args.root, find_template(args.template), no_exec=args.no_exec).run()
     out = json.dumps(audit.to_json(), ensure_ascii=False, indent=2) if args.json else audit.to_markdown()
     print(out)
     if args.out:

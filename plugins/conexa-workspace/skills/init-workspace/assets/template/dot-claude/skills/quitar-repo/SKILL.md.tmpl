@@ -1,0 +1,51 @@
+---
+name: quitar-repo
+description: "Da de baja o renombra un repo de trabajo de este workspace: lo saca (o lo renombra) en bootstrap/repos.tsv y en el bloque de repos del .gitignore, actualiza el experto de su stack (o lo borra si era su último repo), la tabla de AGENTS.md y las notas de knowledge/ que lo citan. Usar cuando se pida quitar, sacar, dar de baja, archivar, desconectar o renombrar un repo del workspace, o con /quitar-repo <carpeta>. No borra el clon ni toca el código del repo."
+---
+
+# Quitar o renombrar un repo del workspace
+
+## Reglas duras
+
+- **Nunca borres un clon.** El bootstrap saca el repo del manifest y, si era un enlace (`--link`),
+  quita el enlace. Una carpeta real queda en disco: borrarla o moverla es decisión del usuario.
+- No escribas nada dentro del repo.
+- Borrar un experto o una nota necesita OK explícito. Mostrá qué se va antes.
+
+## Pasos
+
+1. **Confirmá la carpeta** contra `bootstrap/repos.tsv` y si es baja o renombre.
+2. **Manifest.** Mostrá el dry-run y esperá el OK:
+   ```bash
+   bash bootstrap/bootstrap.sh --remove <carpeta> --dry-run
+   bash bootstrap/bootstrap.sh --rename <carpeta> <nueva> --dry-run
+   ```
+   Después, sin `--dry-run`. El bootstrap resincroniza el bloque de repos del `.gitignore`.
+   En una baja, si avisa que la carpeta sigue en disco, decíselo al usuario: **ya no está ignorada**
+   y hay que sacarla de la raíz antes de commitear.
+3. **Experto del stack.** Mirá la columna Experto de la fila del repo en `AGENTS.md`.
+   - Baja: sacá su fila de "Repos que cubrís", su carpeta y sus términos de la `description`, y las
+     divergencias que eran solo suyas. Si era el último repo del experto, proponé borrar el experto.
+   - Renombre: reemplazá la carpeta en la tabla, en la `description` y en las rutas citadas.
+4. **Tabla de `AGENTS.md`.** Sacá o renombrá la fila entre `<!-- BEGIN repos -->` y `<!-- END repos -->`.
+   Si era el último repo, dejá la fila de "sin repos todavía".
+5. **Referencias.** Buscá la carpeta en lo versionado: `git grep -n "<carpeta>/" -- knowledge .claude AGENTS.md README.md`.
+   - Renombre: actualizá las rutas.
+   - Baja: listá las notas y agentes que lo citan. Una nota que solo habla de ese repo quedó
+     histórica: proponé borrarla o marcarla; una decisión de `knowledge/decisiones.md` no se reescribe,
+     se agrega una entrada nueva si hace falta.
+6. **Mapa.** Borrá `.context/map/<carpeta>.md` y `.context/map/<carpeta>.json` (son generados) y corré
+   `node scripts/map.mjs` para regenerar el índice.
+7. **Validar.** `git add` por nombre de lo tocado y `node scripts/validate.mjs`. Verificá con
+   `git status` que la carpeta dada de baja **no** aparezca como archivo nuevo.
+8. **Commit** solo con aprobación, según `knowledge/procesos/idioma.md`.
+
+## Salida
+
+```
+Repo <carpeta> — dado de baja | renombrado a <nueva>
+Clon: enlace quitado | sigue en disco, sin ignorar (borrar o mover) | renombrado
+Experto: <stack>-expert — actualizado (cubre: <carpetas>) | borrado
+Referencias: <n> actualizadas · <n> notas para revisar: <lista>
+Validador: OK | <problemas>
+```

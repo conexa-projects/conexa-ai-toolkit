@@ -14,7 +14,8 @@ La raíz es la **capa de contexto**. Versiona reglas, conocimiento, agentes y sc
 | `CONTRIBUTING.md` | sí | Dos velocidades: `knowledge/` directo a la rama base; agentes, reglas y scripts por PR |
 | `MAINTENANCE.md` | sí | El capture loop y la tabla "qué disparador actualiza qué" |
 | `bootstrap/repos.tsv` | sí | Manifest de repos: `carpeta<TAB>url<TAB>rama` |
-| `bootstrap/bootstrap.sh` | sí | Clona o enlaza los repos del manifest; mantiene el bloque de repos del `.gitignore`; `--add`, `--link`, `--update`, `--https`, `--dry-run` |
+| `bootstrap/bootstrap.sh` | sí | Clona o enlaza los repos del manifest; mantiene el bloque de repos del `.gitignore`; `--add`, `--remove`, `--rename`, `--link`, `--update`, `--https`, `--dry-run`. Nunca borra un clon |
+| `bootstrap/template.lock.json` | sí | El sello: versión de la plantilla y hash de cada archivo generado. Lo usan `scaffold.py --upgrade` y `audit-workspace` para distinguir una versión vieja de una personalización. No se edita a mano |
 | `scripts/map.mjs` | sí | Genera el mapa de contexto en `.context/` (sin dependencias, Node ≥ 18) |
 | `scripts/session-start.sh` | sí | Hook de inicio: refresca el mapa si un repo cambió y avisa qué falta clonar |
 | `scripts/validate.mjs` | sí | Chequeos de CI (ver abajo) |
@@ -25,9 +26,10 @@ La raíz es la **capa de contexto**. Versiona reglas, conocimiento, agentes y sc
 | `knowledge/decisiones.md` | sí | Log de decisiones estilo ADR, solo agregar |
 | `knowledge/procesos/idioma.md` | sí | La regla de idioma completa |
 | `knowledge/templates/stack-expert.md` | sí | Plantilla de agente experto por stack |
-| `.claude/settings.json` | sí | Permisos (lectura libre, escrituras riesgosas denegadas) y hook `SessionStart` |
+| `.claude/settings.json` | sí | Permisos (lectura libre, escrituras riesgosas denegadas) y hook `SessionStart`. Los `deny` de `Read` frenan también `cat`/`head`/`tail` por Bash, pero no un `grep -r` que no nombra el archivo: no son un sandbox |
 | `.claude/agents/` | sí | `code-reviewer`, `security-reviewer`, `explorer` + un `<stack>-expert` por stack (ej. un `nest-expert` para todos los backends Nest). `security-reviewer` hace la revisión acotada y deriva las auditorías completas a la skill `security-audit` (plugin `conexa-guardrails`, no se copia al workspace) |
 | `.claude/skills/agregar-repo/` | sí | Sumar un repo después del setup |
+| `.claude/skills/quitar-repo/` | sí | Dar de baja o renombrar un repo: manifest, experto, tabla y notas que lo citan |
 | `.claude/skills/capturar/` | sí | Volcar lo aprendido en una sesión a `knowledge/` |
 | `.github/` | sí (opcional) | Workflow del validador y PR template |
 | `drafts/` | no | Borradores, análisis, estimaciones. No es conocimiento |
@@ -38,6 +40,7 @@ La raíz es la **capa de contexto**. Versiona reglas, conocimiento, agentes y sc
 ## Lo que chequea el validador
 
 - Credenciales versionadas (`*.pem`, `*.key`, `.env`, `client_secret*`, etc.).
+- Secretos en el contenido de archivos versionados: clave privada y tokens de GitHub, AWS, Slack, Anthropic y Google.
 - Informes de una auditoría de seguridad versionados (`security-audit/`, `coverage-ledger.json`, `FINDINGS-DETAIL.md`, `NEEDS-VALIDATION.md`).
 - Archivos de un repo de trabajo versionados en la raíz.
 - Cada carpeta del manifest presente en el bloque de repos del `.gitignore`.

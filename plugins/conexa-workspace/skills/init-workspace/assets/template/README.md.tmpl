@@ -22,6 +22,8 @@ Clona los repos de `bootstrap/repos.tsv` por SSH. Opciones:
 | `--link <dir>` | Reusa clones que ya tenés en otra carpeta (los detecta por `origin` y los enlaza). Repetible |
 | `--update` | Hace `fetch` + `pull --ff-only` en los repos que estén limpios. Nunca descarta cambios |
 | `--add <url> [--dir X] [--branch Y]` | Suma un repo al manifest y lo clona |
+| `--remove <carpeta>` | Saca un repo del manifest. Nunca borra el clon |
+| `--rename <carpeta> <nueva>` | Renombra la carpeta de un repo, en el manifest y en disco |
 | `--dry-run` | Muestra qué haría, sin tocar nada |
 
 Es idempotente: re-correrlo agrega solo lo que falta y nunca toca tu código.

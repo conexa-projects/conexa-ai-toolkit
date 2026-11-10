@@ -15,6 +15,16 @@ const EXTERNAL = /^(https?:|mailto:|tel:|#)/i
 const FRONTMATTER = /^---\r?\n([\s\S]*?)\r?\n---/
 const BEGIN_MARK = '# >>> repos (bootstrap/bootstrap.sh mantiene este bloque; no editar a mano) >>>'
 const END_MARK = '# <<< repos <<<'
+// Secretos por contenido: pocos patrones de alta señal. Mantener igual que audit.py de audit-workspace.
+const SECRET_CONTENT = [
+  ['clave privada', /-----BEGIN (?:[A-Z0-9]+ )*PRIVATE KEY-----/],
+  ['token de GitHub', /\b(?:gh[pousr]_[A-Za-z0-9]{36,}|github_pat_[A-Za-z0-9_]{22,})/],
+  ['access key de AWS', /\b(?:AKIA|ASIA)[0-9A-Z]{16}\b/],
+  ['token de Slack', /\bxox[abeprs]-[A-Za-z0-9-]{10,}/],
+  ['API key de Anthropic', /\bsk-ant-[A-Za-z0-9_-]{20,}/],
+  ['API key de Google', /\bAIza[0-9A-Za-z_-]{35}\b/],
+]
+const MAX_SCAN_BYTES = 512 * 1024
 const SELF = 'scripts/validate.mjs'
 
 const problems = []
@@ -60,11 +70,20 @@ function resolve(from, link) {
 function frontmatter(content) {
   const m = FRONTMATTER.exec(content)
   if (!m) return null
+  // Subconjunto de YAML: `clave: valor`, escalares de bloque (`>`, `>-`, `|`) y líneas de continuación indentadas.
   const fields = {}
-  for (const line of m[1].split('\n')) {
+  let key = null
+  for (const line of m[1].split(/\r?\n/)) {
     const pair = /^([\w-]+):\s*(.*)$/.exec(line)
-    if (pair) fields[pair[1]] = pair[2].trim().replace(/^["']|["']$/g, '')
+    if (pair) {
+      key = pair[1]
+      const val = pair[2].trim()
+      fields[key] = /^[>|][+-]?\d*$/.test(val) ? '' : val
+    } else if (key && /^[ \t]/.test(line) && line.trim()) {
+      fields[key] = `${fields[key]} ${line.trim()}`.trim()
+    }
   }
+  for (const k of Object.keys(fields)) fields[k] = fields[k].replace(/^["']|["']$/g, '')
   return fields
 }
 
@@ -82,6 +101,18 @@ const repos = repoDirs()
 
 // 1. Credenciales versionadas
 for (const f of files) if (SECRET_PATH.some((p) => p.test(f))) fail('credencial versionada', f)
+
+// 1a. Secretos en el contenido. Nunca se imprime el secreto: archivo, línea y primeros 4 caracteres.
+for (const f of files) {
+  const content = readSafe(f)
+  if (content === null || content.length > MAX_SCAN_BYTES) continue
+  content.split('\n').forEach((line, i) => {
+    for (const [kind, re] of SECRET_CONTENT) {
+      const m = re.exec(line)
+      if (m && !/EXAMPLE/i.test(m[0])) fail('secreto en el contenido', `${f}:${i + 1} — ${kind} (${m[0].slice(0, 4)}…). Sacarlo y rotarlo`)
+    }
+  })
+}
 
 // 1b. Informes de auditoría de seguridad versionados (traen caminos de explotación)
 const AUDIT_OUTPUT = [/(^|\/)security-audit(-skill)?\//, /(^|\/)coverage-ledger\.json$/, /(^|\/)NEEDS-VALIDATION\.md$/, /(^|\/)FINDINGS-DETAIL\.md$/]
